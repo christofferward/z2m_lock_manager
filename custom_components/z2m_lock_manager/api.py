@@ -53,8 +53,8 @@ def async_setup_api(hass: HomeAssistant, store: Z2MLockManagerStore) -> None:
         configured_locks = []
         max_slots = 10
         for entry in hass.config_entries.async_entries(DOMAIN):
-            locks = entry.data.get("locks", [])
-            entry_max = int(entry.data.get("max_slots", 10))
+            locks = entry.options.get("locks", entry.data.get("locks", []))
+            entry_max = int(entry.options.get("max_slots", entry.data.get("max_slots", 10)))
             if entry_max > max_slots:
                 max_slots = entry_max
             for lock in locks:

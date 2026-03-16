@@ -4,7 +4,7 @@
   "description": "Zigbee2MQTT Lock Manager Frontend",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node build_dist.js"
+    "build": "tsc && vite build"
   },
   "dependencies": {
     "lit": "^3.0.0"
