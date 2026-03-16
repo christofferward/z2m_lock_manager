@@ -126,25 +126,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     ])
     
-    # Register the side panel
+    # Register the side panel (only if not already registered)
     from homeassistant.components import frontend
     
-    frontend.async_register_built_in_panel(
-        hass,
-        component_name="custom",
-        sidebar_title="Z2M Locks",
-        sidebar_icon="mdi:lock-smart",
-        frontend_url_path="z2m_lock_manager",
-        config={
-            "_panel_custom": {
-                "name": "z2m-lock-manager-panel",
-                "embed_iframe": False,
-                "trust_external": False,
-                "module_url": "/z2m_lock_manager_panel/z2m_lock_manager_panel.js",
-            }
-        },
-        require_admin=True,
-    )
+    if DOMAIN not in hass.data.get("frontend_panels", {}):
+        frontend.async_register_built_in_panel(
+            hass,
+            component_name="custom",
+            sidebar_title="Z2M Locks",
+            sidebar_icon="mdi:lock-smart",
+            frontend_url_path="z2m_lock_manager",
+            config={
+                "_panel_custom": {
+                    "name": "z2m-lock-manager-panel",
+                    "embed_iframe": False,
+                    "trust_external": False,
+                    "module_url": "/z2m_lock_manager_panel/z2m_lock_manager_panel.js",
+                }
+            },
+            require_admin=True,
+        )
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
@@ -161,4 +162,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
 
+        # Remove panel and static paths if this is the last entry
+        if not hass.data[DOMAIN]:
+            from homeassistant.components import frontend
+            frontend.async_remove_panel(hass, "z2m_lock_manager")
+            
     return unload_ok
