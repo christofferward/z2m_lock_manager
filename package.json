@@ -1,0 +1,16 @@
+{
+  "name": "z2m-lock-manager",
+  "version": "1.0.0",
+  "description": "Zigbee2MQTT Lock Manager Frontend",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && node build_dist.js"
+  },
+  "dependencies": {
+    "lit": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}

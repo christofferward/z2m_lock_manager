@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Z2M Lock Manager - Dev</title>
+    <style>
+      :root {
+        --primary-color: #03a9f4;
+        --primary-background-color: #fafafa;
+        --secondary-background-color: #e5e5e5;
+        --card-background-color: #ffffff;
+        --primary-text-color: #212121;
+        --secondary-text-color: #727272;
+        --divider-color: rgba(0, 0, 0, 0.12);
+        --error-color: #db4437;
+        font-family: Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #03a9f4;
+          --primary-background-color: #111111;
+          --secondary-background-color: #202020;
+          --card-background-color: #1c1c1c;
+          --primary-text-color: #e1e1e1;
+          --secondary-text-color: #9b9b9b;
+          --divider-color: rgba(255, 255, 255, 0.12);
+        }
+      }
+      body {
+        background-color: var(--primary-background-color);
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <z2m-lock-manager-panel id="panel"></z2m-lock-manager-panel>
+
+    <script type="module" src="/src/z2m_lock_manager_panel.ts"></script>
+    <script type="module">
+      const panel = document.getElementById("panel");
+
+      const mockLocks = [
+        {
+          entity_id: "lock.front_door",
+          name: "Front Door Lock",
+          max_slots: 15,
+          slots: {
+            1: {
+              name: "Alice",
+              code: "1234",
+              enabled: true,
+              user_type: "unrestricted",
+            },
+            2: {
+              name: "Bob",
+              code: "5678",
+              enabled: false,
+              user_type: "week_day_schedule",
+            },
+            3: {
+              name: "Airbnb Guest",
+              code: "482917",
+              enabled: true,
+              user_type: "unrestricted",
+              auto_rotate: true,
+              rotate_interval_hours: 24,
+              last_rotated: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+              has_fingerprint: false,
+              has_rfid: false,
+            },
+          },
+        },
+        {
+          entity_id: "lock.back_door",
+          name: "Back Door Lock",
+          max_slots: 10,
+          slots: {},
+        },
+      ];
+
+      panel.hass = {
+        language: "en", // change to "sv" to test Swedish
+        connection: {
+          sendMessagePromise: async (msg) => {
+            console.log("Mock HA received message:", msg);
+            if (msg.type === "z2m_lock_manager/get_locks") {
+              return mockLocks;
+            }
+            if (msg.type === "z2m_lock_manager/set_code") {
+              const lock = mockLocks.find((l) => l.entity_id === msg.entity_id);
+              if (lock) {
+                lock.slots[msg.slot.toString()] = {
+                  name: msg.name,
+                  code: msg.code,
+                  enabled: msg.enabled,
+                  user_type: msg.user_type,
+                };
+              }
+              return { success: true };
+            }
+            if (msg.type === "z2m_lock_manager/clear_code") {
+              const lock = mockLocks.find((l) => l.entity_id === msg.entity_id);
+              if (lock && lock.slots[msg.slot.toString()]) {
+                delete lock.slots[msg.slot.toString()];
+              }
+              return { success: true };
+            }
+          },
+        },
+      };
+    </script>
+  </body>
+</html>

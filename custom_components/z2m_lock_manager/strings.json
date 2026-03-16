@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Zigbee2MQTT Lock Manager",
+        "description": "Select the locks you want to manage.",
+        "data": {
+          "name": "Name",
+          "locks": "Locks",
+          "max_slots": "Number of code slots"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}
