@@ -1,18 +1,13 @@
 {
   "domain": "z2m_lock_manager",
   "name": "Zigbee2MQTT Lock Manager",
-  "codeowners": [
-    "@christofferward"
-  ],
+  "codeowners": ["@christofferward"],
   "config_flow": true,
-  "dependencies": [
-    "mqtt",
-    "http"
-  ],
+  "dependencies": ["mqtt", "http"],
   "documentation": "https://github.com/christofferward/z2m_lock_manager",
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/christofferward/z2m_lock_manager/issues",
   "requirements": [],
-  "version": "1.0.4"
+  "version": "1.0.0"
 }
