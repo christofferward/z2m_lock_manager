@@ -12,7 +12,7 @@
     "useDefineForClassFields": false,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "outDir": "www"
+    "noEmit": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
