@@ -22,6 +22,9 @@ export const panelStyles = css`
     margin: 0 auto;
   }
   .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 24px;
     margin-bottom: 16px;
     border-bottom: 1px solid var(--divider-color);

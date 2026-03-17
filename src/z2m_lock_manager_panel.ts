@@ -11,6 +11,9 @@ export class Z2MLockManagerPanel extends LitElement {
   @property({ attribute: false })
   public hass!: any;
 
+  @property({ type: Boolean })
+  public narrow!: boolean;
+
   @state()
   private locks: LockData[] = [];
 
@@ -218,7 +221,10 @@ export class Z2MLockManagerPanel extends LitElement {
 
     return html`
       <div class="card">
-        <div class="header">${this.t("title")}</div>
+        <div class="header">
+          <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
+          ${this.t("title")}
+        </div>
 
         <div class="lock-selector">
           <label>${this.t("select_lock")}</label>
