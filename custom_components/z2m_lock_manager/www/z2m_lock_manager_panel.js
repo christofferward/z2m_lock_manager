@@ -22,14 +22,14 @@ let ht = class {
     return this.cssText;
   }
 };
-const $t = (o) => new ht(typeof o == "string" ? o : o + "", void 0, J), pt = (o, ...t) => {
+const yt = (o) => new ht(typeof o == "string" ? o : o + "", void 0, J), pt = (o, ...t) => {
   const e = o.length === 1 ? o[0] : t.reduce((s, i, a) => s + ((r) => {
     if (r._$cssResult$ === !0) return r.cssText;
     if (typeof r == "number") return r;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + r + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(i) + o[a + 1], o[0]);
   return new ht(e, o, J);
-}, yt = (o, t) => {
+}, $t = (o, t) => {
   if (Y) o.adoptedStyleSheets = t.map((e) => e instanceof CSSStyleSheet ? e : e.styleSheet);
   else for (const e of t) {
     const s = document.createElement("style"), i = j.litNonce;
@@ -38,14 +38,14 @@ const $t = (o) => new ht(typeof o == "string" ? o : o + "", void 0, J), pt = (o,
 }, tt = Y ? (o) => o : (o) => o instanceof CSSStyleSheet ? ((t) => {
   let e = "";
   for (const s of t.cssRules) e += s.cssText;
-  return $t(e);
+  return yt(e);
 })(o) : o;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: vt, defineProperty: bt, getOwnPropertyDescriptor: xt, getOwnPropertyNames: St, getOwnPropertySymbols: At, getPrototypeOf: wt } = Object, y = globalThis, et = y.trustedTypes, kt = et ? et.emptyScript : "", F = y.reactiveElementPolyfillSupport, D = (o, t) => o, V = { toAttribute(o, t) {
+const { is: vt, defineProperty: bt, getOwnPropertyDescriptor: xt, getOwnPropertyNames: St, getOwnPropertySymbols: At, getPrototypeOf: wt } = Object, $ = globalThis, et = $.trustedTypes, kt = et ? et.emptyScript : "", F = $.reactiveElementPolyfillSupport, D = (o, t) => o, V = { toAttribute(o, t) {
   switch (t) {
     case Boolean:
       o = o ? kt : null;
@@ -74,7 +74,7 @@ const { is: vt, defineProperty: bt, getOwnPropertyDescriptor: xt, getOwnProperty
   }
   return e;
 } }, K = (o, t) => !vt(o, t), st = { attribute: !0, type: String, converter: V, reflect: !1, useDefault: !1, hasChanged: K };
-Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), y.litPropertyMetadata ?? (y.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
+Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), $.litPropertyMetadata ?? ($.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
 let E = class extends HTMLElement {
   static addInitializer(t) {
     this._$Ei(), (this.l ?? (this.l = [])).push(t);
@@ -159,7 +159,7 @@ let E = class extends HTMLElement {
   }
   createRenderRoot() {
     const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return yt(t, this.constructor.elementStyles), t;
+    return $t(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
     var t;
@@ -278,13 +278,13 @@ let E = class extends HTMLElement {
   firstUpdated(t) {
   }
 };
-E.elementStyles = [], E.shadowRootOptions = { mode: "open" }, E[D("elementProperties")] = /* @__PURE__ */ new Map(), E[D("finalized")] = /* @__PURE__ */ new Map(), F == null || F({ ReactiveElement: E }), (y.reactiveElementVersions ?? (y.reactiveElementVersions = [])).push("2.1.2");
+E.elementStyles = [], E.shadowRootOptions = { mode: "open" }, E[D("elementProperties")] = /* @__PURE__ */ new Map(), E[D("finalized")] = /* @__PURE__ */ new Map(), F == null || F({ ReactiveElement: E }), ($.reactiveElementVersions ?? ($.reactiveElementVersions = [])).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const U = globalThis, it = (o) => o, q = U.trustedTypes, ot = q ? q.createPolicy("lit-html", { createHTML: (o) => o }) : void 0, ut = "$lit$", $ = `lit$${Math.random().toFixed(9).slice(2)}$`, gt = "?" + $, Et = `<${gt}>`, w = document, z = () => w.createComment(""), N = (o) => o === null || typeof o != "object" && typeof o != "function", Q = Array.isArray, Ct = (o) => Q(o) || typeof (o == null ? void 0 : o[Symbol.iterator]) == "function", W = `[ 	
+const U = globalThis, it = (o) => o, q = U.trustedTypes, ot = q ? q.createPolicy("lit-html", { createHTML: (o) => o }) : void 0, ut = "$lit$", y = `lit$${Math.random().toFixed(9).slice(2)}$`, gt = "?" + y, Et = `<${gt}>`, w = document, z = () => w.createComment(""), N = (o) => o === null || typeof o != "object" && typeof o != "function", Q = Array.isArray, Ct = (o) => Q(o) || typeof (o == null ? void 0 : o[Symbol.iterator]) == "function", W = `[ 	
 \f\r]`, R = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, rt = /-->/g, at = />/g, x = RegExp(`>|${W}(?:([^\\s"'>=/]+)(${W}*=${W}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), nt = /'/g, lt = /"/g, ft = /^(?:script|style|textarea|title)$/i, Pt = (o) => (t, ...e) => ({ _$litType$: o, strings: t, values: e }), p = Pt(1), T = Symbol.for("lit-noChange"), h = Symbol.for("lit-nothing"), ct = /* @__PURE__ */ new WeakMap(), S = w.createTreeWalker(w, 129);
 function _t(o, t) {
@@ -299,7 +299,7 @@ const Tt = (o, t) => {
     let d, u, c = -1, f = 0;
     for (; f < n.length && (r.lastIndex = f, u = r.exec(n), u !== null); ) f = r.lastIndex, r === R ? u[1] === "!--" ? r = rt : u[1] !== void 0 ? r = at : u[2] !== void 0 ? (ft.test(u[2]) && (i = RegExp("</" + u[2], "g")), r = x) : u[3] !== void 0 && (r = x) : r === x ? u[0] === ">" ? (r = i ?? R, c = -1) : u[1] === void 0 ? c = -2 : (c = r.lastIndex - u[2].length, d = u[1], r = u[3] === void 0 ? x : u[3] === '"' ? lt : nt) : r === lt || r === nt ? r = x : r === rt || r === at ? r = R : (r = x, i = void 0);
     const m = r === x && o[l + 1].startsWith("/>") ? " " : "";
-    a += r === R ? n + Et : c >= 0 ? (s.push(d), n.slice(0, c) + ut + n.slice(c) + $ + m) : n + $ + (c === -2 ? l : m);
+    a += r === R ? n + Et : c >= 0 ? (s.push(d), n.slice(0, c) + ut + n.slice(c) + y + m) : n + y + (c === -2 ? l : m);
   }
   return [_t(o, a + (o[e] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), s];
 };
@@ -316,11 +316,11 @@ class H {
     for (; (i = S.nextNode()) !== null && n.length < l; ) {
       if (i.nodeType === 1) {
         if (i.hasAttributes()) for (const c of i.getAttributeNames()) if (c.endsWith(ut)) {
-          const f = u[r++], m = i.getAttribute(c).split($), I = /([.?@])?(.*)/.exec(f);
+          const f = u[r++], m = i.getAttribute(c).split(y), I = /([.?@])?(.*)/.exec(f);
           n.push({ type: 1, index: a, name: I[2], strings: m, ctor: I[1] === "." ? Ot : I[1] === "?" ? Rt : I[1] === "@" ? Dt : B }), i.removeAttribute(c);
-        } else c.startsWith($) && (n.push({ type: 6, index: a }), i.removeAttribute(c));
+        } else c.startsWith(y) && (n.push({ type: 6, index: a }), i.removeAttribute(c));
         if (ft.test(i.tagName)) {
-          const c = i.textContent.split($), f = c.length - 1;
+          const c = i.textContent.split(y), f = c.length - 1;
           if (f > 0) {
             i.textContent = q ? q.emptyScript : "";
             for (let m = 0; m < f; m++) i.append(c[m], z()), S.nextNode(), n.push({ type: 2, index: ++a });
@@ -330,7 +330,7 @@ class H {
       } else if (i.nodeType === 8) if (i.data === gt) n.push({ type: 2, index: a });
       else {
         let c = -1;
-        for (; (c = i.data.indexOf($, c + 1)) !== -1; ) n.push({ type: 7, index: a }), c += $.length - 1;
+        for (; (c = i.data.indexOf(y, c + 1)) !== -1; ) n.push({ type: 7, index: a }), c += y.length - 1;
       }
       a++;
     }
@@ -1157,15 +1157,17 @@ var Ft = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, b = (o, t,
 };
 let g = class extends C {
   constructor() {
-    super(...arguments), this.locks = [], this.selectedLock = null, this.actionState = null, this.currentPage = 1, this.currentTime = /* @__PURE__ */ new Date(), this._timerInterval = null, this._hassSet = !1;
+    super(...arguments), this.locks = [], this.selectedLock = null, this.actionState = null, this.currentPage = 1, this.currentTime = /* @__PURE__ */ new Date(), this._timerInterval = null, this._handleVisibilityChange = () => {
+      document.visibilityState === "visible" && this.hass && this.loadLocks();
+    };
   }
   connectedCallback() {
     super.connectedCallback(), this._timerInterval = window.setInterval(() => {
       this.currentTime = /* @__PURE__ */ new Date();
-    }, 6e4);
+    }, 6e4), document.addEventListener("visibilitychange", this._handleVisibilityChange), this.hass && this.loadLocks();
   }
   disconnectedCallback() {
-    super.disconnectedCallback(), this._timerInterval !== null && window.clearInterval(this._timerInterval);
+    super.disconnectedCallback(), this._timerInterval !== null && window.clearInterval(this._timerInterval), document.removeEventListener("visibilitychange", this._handleVisibilityChange);
   }
   calculateTimeRemaining(o, t) {
     const e = new Date(o), i = new Date(
@@ -1182,7 +1184,7 @@ let g = class extends C {
     return (P[t] || P.en)[o] || P.en[o] || o;
   }
   updated(o) {
-    o.has("hass") && this.hass && !this._hassSet && (this._hassSet = !0, this.loadLocks());
+    o.has("hass") && this.hass && (!o.get("hass") || this.locks.length === 0) && this.loadLocks();
   }
   async loadLocks() {
     try {

@@ -34,13 +34,18 @@ export class Z2MLockManagerPanel extends LitElement {
 
   private _timerInterval: number | null = null;
 
-  private _hassSet = false;
-
   override connectedCallback() {
     super.connectedCallback();
     this._timerInterval = window.setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
+
+    document.addEventListener("visibilitychange", this._handleVisibilityChange);
+    
+    // If hass is already set when we connect, load locks immediately
+    if (this.hass) {
+      this.loadLocks();
+    }
   }
 
   override disconnectedCallback() {
@@ -48,6 +53,7 @@ export class Z2MLockManagerPanel extends LitElement {
     if (this._timerInterval !== null) {
       window.clearInterval(this._timerInterval);
     }
+    document.removeEventListener("visibilitychange", this._handleVisibilityChange);
   }
 
   private calculateTimeRemaining(
@@ -76,12 +82,21 @@ export class Z2MLockManagerPanel extends LitElement {
     return dict[key] || TRANSLATIONS["en"][key] || key;
   }
 
+  private _handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && this.hass) {
+      this.loadLocks();
+    }
+  };
+
   protected override updated(
     changedProperties: Map<string | number | symbol, unknown>,
   ) {
-    if (changedProperties.has("hass") && this.hass && !this._hassSet) {
-      this._hassSet = true;
-      this.loadLocks();
+    if (changedProperties.has("hass") && this.hass) {
+      const oldHass = changedProperties.get("hass") as any;
+      // Load locks if we just got the hass object, or if we don't have locks yet
+      if (!oldHass || this.locks.length === 0) {
+        this.loadLocks();
+      }
     }
   }
 
