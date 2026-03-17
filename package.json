@@ -1,6 +1,7 @@
 {
   "name": "z2m-lock-manager",
   "version": "1.0.0",
+  "type": "module",
   "description": "Zigbee2MQTT Lock Manager Frontend",
   "scripts": {
     "dev": "vite",

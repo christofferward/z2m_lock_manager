@@ -3,10 +3,42 @@ import { css } from "lit";
 export const panelStyles = css`
   :host {
     display: block;
-    padding: 16px;
     background-color: var(--primary-background-color);
     color: var(--primary-text-color);
     font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif);
+    min-height: 100vh;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background-color: var(--app-header-background-color, var(--primary-background-color));
+    color: var(--app-header-text-color, var(--primary-text-color));
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  ha-menu-button {
+    color: var(--app-header-text-color, var(--primary-text-color));
+  }
+  .title {
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .header-version {
+    font-size: 14px;
+    color: var(--secondary-text-color);
+  }
+  .content {
+    padding: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
   .card {
     background: var(--card-background-color, #fff);
@@ -18,17 +50,6 @@ export const panelStyles = css`
       0px 1px 3px 0px rgba(0, 0, 0, 0.12)
     );
     padding: 16px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 24px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--divider-color);
-    padding-bottom: 8px;
   }
   .lock-selector {
     margin-bottom: 24px;

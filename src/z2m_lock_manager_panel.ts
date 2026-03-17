@@ -34,13 +34,18 @@ export class Z2MLockManagerPanel extends LitElement {
 
   private _timerInterval: number | null = null;
 
-  private _hassSet = false;
-
   override connectedCallback() {
     super.connectedCallback();
     this._timerInterval = window.setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
+
+    document.addEventListener("visibilitychange", this._handleVisibilityChange);
+
+    // If hass is already set when we connect, load locks immediately
+    if (this.hass) {
+      this.loadLocks();
+    }
   }
 
   override disconnectedCallback() {
@@ -48,6 +53,10 @@ export class Z2MLockManagerPanel extends LitElement {
     if (this._timerInterval !== null) {
       window.clearInterval(this._timerInterval);
     }
+    document.removeEventListener(
+      "visibilitychange",
+      this._handleVisibilityChange,
+    );
   }
 
   private calculateTimeRemaining(
@@ -76,12 +85,25 @@ export class Z2MLockManagerPanel extends LitElement {
     return dict[key] || TRANSLATIONS["en"][key] || key;
   }
 
+  private _handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && this.hass) {
+      this.loadLocks().catch((e) => {
+        console.warn("Skipped loading locks on visibility change:", e);
+      });
+    }
+  };
+
   protected override updated(
     changedProperties: Map<string | number | symbol, unknown>,
   ) {
-    if (changedProperties.has("hass") && this.hass && !this._hassSet) {
-      this._hassSet = true;
-      this.loadLocks();
+    if (changedProperties.has("hass") && this.hass) {
+      const oldHass = changedProperties.get("hass") as any;
+      // Load locks if we just got the hass object, or if we don't have locks yet
+      if (!oldHass || this.locks.length === 0) {
+        this.loadLocks().catch((e) => {
+          console.warn("Failed loading locks on hass update:", e);
+        });
+      }
     }
   }
 
@@ -95,6 +117,7 @@ export class Z2MLockManagerPanel extends LitElement {
       }
     } catch (err) {
       console.error("Failed to load locks", err);
+      // Don't throw, just leave locks as empty or keep previous state
     }
   }
 
@@ -161,12 +184,15 @@ export class Z2MLockManagerPanel extends LitElement {
       detail.hasFingerprint,
       detail.hasRfid,
       detail.autoRotate,
-      detail.rotateIntervalHours
+      detail.rotateIntervalHours,
     );
 
     this.actionState = { slot: detail.slot, type: "saved" };
     setTimeout(() => {
-      if (this.actionState?.slot === detail.slot && this.actionState?.type === "saved") {
+      if (
+        this.actionState?.slot === detail.slot &&
+        this.actionState?.type === "saved"
+      ) {
         this.actionState = null;
       }
     }, 2000);
@@ -180,7 +206,10 @@ export class Z2MLockManagerPanel extends LitElement {
 
     this.actionState = { slot: detail.slot, type: "cleared" };
     setTimeout(() => {
-      if (this.actionState?.slot === detail.slot && this.actionState?.type === "cleared") {
+      if (
+        this.actionState?.slot === detail.slot &&
+        this.actionState?.type === "cleared"
+      ) {
         this.actionState = null;
       }
     }, 2000);
@@ -188,7 +217,9 @@ export class Z2MLockManagerPanel extends LitElement {
 
   private handleSlotUpdate(e: CustomEvent) {
     const detail = e.detail;
-    const lockIdx = this.locks.findIndex((l) => l.entity_id === this.selectedLock);
+    const lockIdx = this.locks.findIndex(
+      (l) => l.entity_id === this.selectedLock,
+    );
     if (lockIdx > -1) {
       if (!this.locks[lockIdx].slots[detail.slot]) {
         this.locks[lockIdx].slots[detail.slot] = {
@@ -202,7 +233,7 @@ export class Z2MLockManagerPanel extends LitElement {
       }
       this.locks[lockIdx].slots[detail.slot] = {
         ...this.locks[lockIdx].slots[detail.slot],
-        ...detail.updates
+        ...detail.updates,
       };
       this.requestUpdate();
     }
@@ -220,30 +251,37 @@ export class Z2MLockManagerPanel extends LitElement {
     );
 
     return html`
-      <div class="card">
-        <div class="header">
-          <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
-          ${this.t("title")}
+      <div class="header">
+        <div class="header-left">
+          <ha-menu-button
+            .hass=${this.hass}
+            .narrow=${this.narrow}
+          ></ha-menu-button>
+          <div class="title">${this.t("title")}</div>
         </div>
+      </div>
 
-        <div class="lock-selector">
-          <label>${this.t("select_lock")}</label>
-          <select id="lock-select" @change=${this.handleLockChange}>
-            ${this.locks.map(
-              (lock) => html`
-                <option
-                  value="${lock.entity_id}"
-                  ?selected=${lock.entity_id === this.selectedLock}
-                >
-                  ${lock.name}
-                </option>
-              `,
-            )}
-          </select>
+      <div class="content">
+        <div class="card">
+          <div class="lock-selector">
+            <label>${this.t("select_lock")}</label>
+            <select id="lock-select" @change=${this.handleLockChange}>
+              ${this.locks.map(
+                (lock) => html`
+                  <option
+                    value="${lock.entity_id}"
+                    ?selected=${lock.entity_id === this.selectedLock}
+                  >
+                    ${lock.name}
+                  </option>
+                `,
+              )}
+            </select>
+          </div>
+
+          <div class="slot-list">${this.renderSlots(currentLockData)}</div>
+          ${this.renderPagination(currentLockData)}
         </div>
-
-        <div class="slot-list">${this.renderSlots(currentLockData)}</div>
-        ${this.renderPagination(currentLockData)}
       </div>
     `;
   }
