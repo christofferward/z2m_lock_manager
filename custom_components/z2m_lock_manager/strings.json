@@ -19,5 +19,16 @@
     "abort": {
       "already_configured": "Device is already configured"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zigbee2MQTT Lock Manager options",
+        "data": {
+          "locks": "Locks",
+          "max_slots": "Number of code slots"
+        }
+      }
+    }
   }
 }

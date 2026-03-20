@@ -19,6 +19,7 @@
 ## Planned
 
 ### Date-Based User Codes
+
 > Allow PIN codes to be valid only between specific start and end dates.
 
 - Add `valid_from` and `valid_to` date/time fields per slot
@@ -27,14 +28,15 @@
 - Useful for Airbnb guests, recurring cleaners, etc.
 
 ### Event-Based Notifications
+
 > Fire HA events on key actions for use in automations.
 
 - `z2m_lock_manager_code_set` — when a code is saved
 - `z2m_lock_manager_code_cleared` — when a code is cleared
 - `z2m_lock_manager_code_expired` — when a date-based code reaches its `valid_to`
-- `z2m_lock_manager_code_rotated` — already implemented for auto-rotate
 
 ### Audit Log / History
+
 > Track when codes were last used, changed, or rotated.
 
 - Store a lightweight history of actions per slot
@@ -52,4 +54,4 @@
 
 ---
 
-*Last updated: 2026-03-12*
+_Last updated: 2026-03-20_
