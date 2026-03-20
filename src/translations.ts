@@ -1,7 +1,7 @@
 export const TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
     title: "Zigbee2MQTT Locks",
-    select_lock: "Select Lock",
+    select_lock: "Select slot",
     loading: "Loading...",
     slot: "Slot",
     name: "Name",
@@ -31,7 +31,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
   },
   sv: {
     title: "Zigbee2MQTT Lås",
-    select_lock: "Välj lås",
+    select_lock: "Välj plats",
     loading: "Laddar...",
     slot: "Plats",
     name: "Namn",

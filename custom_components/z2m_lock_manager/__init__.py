@@ -1,3 +1,4 @@
+"""Zigbee2MQTT Lock Manager integration."""
 from __future__ import annotations
 
 import json
@@ -8,16 +9,23 @@ from datetime import datetime, timedelta, timezone
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .const import DOMAIN, PLATFORMS
-from .api import async_setup_api
-from .store import Z2MLockManagerStore
+from .panel import async_register_panel, async_unregister_panel
+from .storage import Z2MLockManagerStore
+from .websocket import register_ws_handlers
 
 _LOGGER = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Auto-rotation helper
+# ---------------------------------------------------------------------------
+
 def _get_z2m_friendly_name(hass: HomeAssistant, entity_id: str) -> str | None:
-    """Resolve the Zigbee2MQTT friendly name for a given entity."""
+    """Resolve the Zigbee2MQTT friendly name for a given lock entity."""
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+
     ent_reg = er.async_get(hass)
     entry = ent_reg.async_get(entity_id)
     if entry is None or entry.device_id is None:
@@ -30,122 +38,97 @@ def _get_z2m_friendly_name(hass: HomeAssistant, entity_id: str) -> str | None:
 
     return device.name
 
+
 async def _check_and_rotate_codes(hass: HomeAssistant, store: Z2MLockManagerStore) -> None:
-    """Background task to rotate codes if their interval has passed."""
+    """Rotate guest codes whose interval has expired."""
     now = datetime.now(timezone.utc)
-    
-    for lock_id, lock_data in store.data.get("locks", {}).items():
-        slots = lock_data.get("slots", {})
-        for slot_str, slot_data in slots.items():
-            if not slot_data.get("enabled") or not slot_data.get("auto_rotate"):
+
+    for entity_id, lock in store.locks.items():
+        for slot_int, slot in lock.slots.items():
+            if not slot.enabled or not slot.auto_rotate:
                 continue
-                
-            interval_hours = slot_data.get("rotate_interval_hours", 24)
-            last_rotated_str = slot_data.get("last_rotated")
-            
+
             should_rotate = False
-            if not last_rotated_str:
+            if not slot.last_rotated:
                 should_rotate = True
             else:
                 try:
-                    last_rotated = datetime.fromisoformat(last_rotated_str)
-                    if now >= last_rotated + timedelta(hours=interval_hours):
+                    last_rotated = datetime.fromisoformat(slot.last_rotated)
+                    if now >= last_rotated + timedelta(hours=slot.rotate_interval_hours):
                         should_rotate = True
                 except ValueError:
                     should_rotate = True
-                    
-            if should_rotate:
-                # Generate a random 6-digit PIN
-                new_pin = str(random.randint(100000, 999999))
-                slot_int = int(slot_str)
-                name = slot_data.get("name", f"Slot {slot_str}")
-                user_type = slot_data.get("user_type", "unrestricted")
-                
-                # Send to Z2M
-                z2m_name = _get_z2m_friendly_name(hass, lock_id)
-                if z2m_name:
-                    topic = f"zigbee2mqtt/{z2m_name}/set"
-                    payload = json.dumps({
-                        "pin_code": {
-                            "user": slot_int,
-                            "user_type": user_type,
-                            "pin_code": new_pin
-                        }
-                    })
-                    await hass.services.async_call("mqtt", "publish", {"topic": topic, "payload": payload})
-                    
-                    # Save to store
-                    await store.async_update_slot(
-                        lock_id, slot_int, name, new_pin, True, user_type,
-                        slot_data.get("has_fingerprint", False),
-                        slot_data.get("has_rfid", False),
-                        True, interval_hours, now.isoformat()
-                    )
-                    
-                    # Dispatch Native HA Event
-                    hass.bus.async_fire(f"{DOMAIN}_code_rotated", {
-                        "entity_id": lock_id,
-                        "slot": slot_int,
-                        "name": name,
-                        "code": new_pin
-                    })
-                    _LOGGER.info(f"Rotated guest code for {name} on {lock_id}")
+
+            if not should_rotate:
+                continue
+
+            new_pin = str(random.randint(100000, 999999))
+            z2m_name = _get_z2m_friendly_name(hass, entity_id)
+            if not z2m_name:
+                continue
+
+            topic = f"zigbee2mqtt/{z2m_name}/set"
+            payload = json.dumps(
+                {
+                    "pin_code": {
+                        "user": slot_int,
+                        "user_type": slot.user_type,
+                        "pin_code": new_pin,
+                    }
+                }
+            )
+            await hass.services.async_call("mqtt", "publish", {"topic": topic, "payload": payload})
+
+            await store.async_update_slot(
+                entity_id,
+                slot_int,
+                slot.name,
+                new_pin,
+                True,
+                slot.user_type,
+                slot.has_fingerprint,
+                slot.has_rfid,
+                True,
+                slot.rotate_interval_hours,
+                now.isoformat(),
+            )
+
+            hass.bus.async_fire(
+                f"{DOMAIN}_code_rotated",
+                {"entity_id": entity_id, "slot": slot_int, "name": slot.name, "code": new_pin},
+            )
+            _LOGGER.info("Rotated guest code for %s on %s", slot.name, entity_id)
+
+
+# ---------------------------------------------------------------------------
+# Integration lifecycle
+# ---------------------------------------------------------------------------
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Zigbee2MQTT Lock Manager from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-    
+
+    # Load persistent state
     store = Z2MLockManagerStore(hass)
     await store.async_load()
-    
-    # Store configuration options and store instance
-    hass.data[DOMAIN][entry.entry_id] = {
-        "data": entry.data,
-        "store": store
-    }
-    
-    # Setup websocket API
-    async_setup_api(hass, store)
-    
-    # Setup background auto-rotation task
-    async def _rotate_interval(now: datetime):
+    hass.data[DOMAIN][entry.entry_id] = {"data": entry.data, "store": store}
+
+    # Make the store accessible to WebSocket handlers via the top-level domain key
+    hass.data[DOMAIN]["store"] = store
+
+    # Register WebSocket API
+    register_ws_handlers(hass)
+
+    # Register sidebar panel + static assets
+    await async_register_panel(hass)
+
+    # Schedule periodic auto-rotation checks (every 5 minutes)
+    async def _rotate_interval(now: datetime) -> None:
         await _check_and_rotate_codes(hass, store)
-        
+
     entry.async_on_unload(
         async_track_time_interval(hass, _rotate_interval, timedelta(minutes=5))
     )
-    
-    # Register web view
-    from homeassistant.components.http import StaticPathConfig
-    
-    await hass.http.async_register_static_paths([
-        StaticPathConfig(
-            "/z2m_lock_manager_panel",
-            hass.config.path("custom_components/z2m_lock_manager/www"),
-            cache_headers=False
-        )
-    ])
-    
-    # Register the side panel (only if not already registered)
-    from homeassistant.components import frontend
-    
-    if DOMAIN not in hass.data.get("frontend_panels", {}):
-        frontend.async_register_built_in_panel(
-            hass,
-            component_name="custom",
-            sidebar_title="Z2M Locks",
-            sidebar_icon="mdi:lock-smart",
-            frontend_url_path="z2m_lock_manager",
-            config={
-                "_panel_custom": {
-                    "name": "z2m-lock-manager-panel",
-                    "embed_iframe": False,
-                    "trust_external": False,
-                    "module_url": "/z2m_lock_manager_panel/z2m_lock_manager_panel.js",
-                }
-            },
-            require_admin=True,
-        )
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
@@ -153,18 +136,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
+
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update."""
+    """Reload the integration when options change."""
     await hass.config_entries.async_reload(entry.entry_id)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
 
-        # Remove panel and static paths if this is the last entry
-        if not hass.data[DOMAIN]:
-            from homeassistant.components import frontend
-            frontend.async_remove_panel(hass, "z2m_lock_manager")
-            
+        # Remove the panel only when the last entry is removed
+        if not any(k for k in hass.data[DOMAIN] if k not in ("store", "static_paths_registered", "panel_registered")):
+            async_unregister_panel(hass)
+
     return unload_ok

@@ -19,5 +19,16 @@
     "abort": {
       "already_configured": "Enheten är redan konfigurerad"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Inställningar för Zigbee2MQTT Lock Manager",
+        "data": {
+          "locks": "Lås",
+          "max_slots": "Antal kodplatser"
+        }
+      }
+    }
   }
 }
