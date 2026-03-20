@@ -4,7 +4,7 @@ A [Home Assistant](https://www.home-assistant.io/) custom integration for managi
 
 Provides a dedicated sidebar panel to configure user code slots per lock — no YAML, no MQTT Explorer, just a clean UI.
 
----
+## ![Screenshot of the Z2M Lock Manager dashboard in Home Assistant showing user code slots](image.png)
 
 ## Features
 
@@ -58,10 +58,10 @@ Provides a dedicated sidebar panel to configure user code slots per lock — no 
 
 During initial setup (and in **Settings → Devices & Services → Configure**) you can configure:
 
-| Field | Description |
-|---|---|
-| **Locks** | One or more `lock.*` entities managed by Zigbee2MQTT |
-| **Number of code slots** | How many slots to display in the panel (1–100) |
+| Field                    | Description                                          |
+| ------------------------ | ---------------------------------------------------- |
+| **Locks**                | One or more `lock.*` entities managed by Zigbee2MQTT |
+| **Number of code slots** | How many slots to display in the panel (1–100)       |
 
 ---
 
@@ -162,19 +162,25 @@ Contributions are welcome! Please open an issue or pull request on [GitHub](http
 
 ### What to Edit
 
-| What you want to change | File(s) to edit |
-|---|---|
-| Panel UI, layout, or styling | `src/z2m_lock_manager_panel.ts`, `src/z2m_lock_slot.ts`, `src/styles.ts` |
-| UI translations | `src/translations.ts` + `custom_components/z2m_lock_manager/translations/*.json` + `strings.json` |
-| WebSocket API (add/modify commands) | `custom_components/z2m_lock_manager/websocket.py` + `const.py` (add WS type constant) |
-| Data models or storage format | `custom_components/z2m_lock_manager/storage.py` |
-| Config/options flow fields | `custom_components/z2m_lock_manager/config_flow.py` + `strings.json` + `translations/*.json` |
-| Sidebar panel registration | `custom_components/z2m_lock_manager/panel.py` |
-| Integration setup / teardown | `custom_components/z2m_lock_manager/__init__.py` |
-| String constants (URLs, keys) | `custom_components/z2m_lock_manager/const.py` |
+| What you want to change             | File(s) to edit                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Panel UI, layout, or styling        | `src/z2m_lock_manager_panel.ts`, `src/z2m_lock_slot.ts`, `src/styles.ts`                          |
+| UI translations                     | `src/translations.ts` + `custom_components/z2m_lock_manager/translations/*.json` + `strings.json` |
+| WebSocket API (add/modify commands) | `custom_components/z2m_lock_manager/websocket.py` + `const.py` (add WS type constant)             |
+| Data models or storage format       | `custom_components/z2m_lock_manager/storage.py`                                                   |
+| Config/options flow fields          | `custom_components/z2m_lock_manager/config_flow.py` + `strings.json` + `translations/*.json`      |
+| Sidebar panel registration          | `custom_components/z2m_lock_manager/panel.py`                                                     |
+| Integration setup / teardown        | `custom_components/z2m_lock_manager/__init__.py`                                                  |
+| String constants (URLs, keys)       | `custom_components/z2m_lock_manager/const.py`                                                     |
 
 > [!TIP]
 > After editing any Python file, copy `custom_components/z2m_lock_manager/` to your HA `config/custom_components/` and restart Home Assistant to test. After editing TypeScript files, run `npm run build` first.
+
+---
+
+## Credits & Transparency
+
+- **AI Collaboration** — The dashboard UI and some of its styling were developed with the assistance of AI (Google Antigravity), ensuring a modern and responsive experience while the project maintainer focused on the core Zigbee/MQTT logic.
 
 ---
 

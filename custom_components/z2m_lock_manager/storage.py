@@ -1,6 +1,7 @@
 """Data store for Z2M Lock Manager."""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -8,6 +9,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass

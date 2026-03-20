@@ -4,7 +4,7 @@ DOMAIN = "z2m_lock_manager"
 PLATFORMS: list[str] = []  # UI-only integration: no entity platforms
 
 # --- Storage ---
-STORAGE_KEY = DOMAIN
+STORAGE_KEY = f"{DOMAIN}.store"
 STORAGE_VERSION = 1
 
 # --- Config-entry keys ---

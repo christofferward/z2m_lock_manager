@@ -1,36 +1,39 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
-import { LockData } from "./types";
+import { LockData, LockSlot } from "./types";
 import { TRANSLATIONS } from "./translations";
+import { PERSON_ICON, ROTATE_ICON, LOCK_ICON } from "./icons";
 import { panelStyles } from "./styles";
 import "./z2m_lock_slot";
 
+const EMPTY_SLOT: LockSlot = {
+  name: "",
+  code: "",
+  enabled: false,
+  user_type: "unrestricted",
+  auto_rotate: false,
+  rotate_interval_hours: 24,
+};
+
 @customElement("z2m-lock-manager-panel")
 export class Z2MLockManagerPanel extends LitElement {
-  @property({ attribute: false })
-  public hass!: any;
+  @property({ attribute: false }) public hass!: any;
+  @property({ type: Boolean }) public narrow!: boolean;
 
-  @property({ type: Boolean })
-  public narrow!: boolean;
-
-  @state()
-  private locks: LockData[] = [];
-
-  @state()
-  private selectedLock: string | null = null;
-
-  @state()
-  private actionState: {
+  @state() private locks: LockData[] = [];
+  @state() private selectedLock: string | null = null;
+  @state() private selectedSlot: string | null = null;
+  @state() private actionState: {
     slot: string;
     type: "saving" | "saved" | "clearing" | "cleared";
   } | null = null;
+  @state() private currentTime: Date = new Date();
+  @state() private _currentPage = 0;
+  private _loading = false;
+  private PAGE_SIZE = 20;
 
-  @state()
-  private currentPage: number = 1;
-
-  @state()
-  private currentTime: Date = new Date();
+  static override styles = panelStyles;
 
   private _timerInterval: number | null = null;
 
@@ -38,46 +41,34 @@ export class Z2MLockManagerPanel extends LitElement {
     super.connectedCallback();
     this._timerInterval = window.setInterval(() => {
       this.currentTime = new Date();
-    }, 60000);
-
+    }, 60_000);
     document.addEventListener("visibilitychange", this._handleVisibilityChange);
-
-    // If hass is already set when we connect, load locks immediately
-    if (this.hass) {
-      this.loadLocks();
-    }
+    if (this.hass) this.loadLocks();
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._timerInterval !== null) {
-      window.clearInterval(this._timerInterval);
-    }
+    if (this._timerInterval !== null) window.clearInterval(this._timerInterval);
     document.removeEventListener(
       "visibilitychange",
       this._handleVisibilityChange,
     );
   }
 
-  private calculateTimeRemaining(
-    lastRotated: string,
-    intervalHours: number,
-  ): string {
-    const rotatedAt = new Date(lastRotated);
-    const expiresAt = new Date(
-      rotatedAt.getTime() + intervalHours * 60 * 60 * 1000,
-    );
-    const diffMs = expiresAt.getTime() - this.currentTime.getTime();
-
-    if (diffMs <= 0) {
-      return this.t("expired");
+  protected override updated(changed: Map<string | number | symbol, unknown>) {
+    if (changed.has("hass") && this.hass) {
+      const old = changed.get("hass") as any;
+      if (!old || this.locks.length === 0) {
+        this.loadLocks().catch((e) => console.warn("Failed loading locks:", e));
+      }
     }
-
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${diffHours}h ${diffMins}m`;
   }
+
+  private _handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && this.hass) {
+      this.loadLocks().catch((e) => console.warn("Skipped reload:", e));
+    }
+  };
 
   private t(key: string): string {
     const lang = this.hass?.language || "en";
@@ -85,270 +76,231 @@ export class Z2MLockManagerPanel extends LitElement {
     return dict[key] || TRANSLATIONS["en"][key] || key;
   }
 
-  private _handleVisibilityChange = () => {
-    if (document.visibilityState === "visible" && this.hass) {
-      this.loadLocks().catch((e) => {
-        console.warn("Skipped loading locks on visibility change:", e);
-      });
-    }
-  };
-
-  protected override updated(
-    changedProperties: Map<string | number | symbol, unknown>,
-  ) {
-    if (changedProperties.has("hass") && this.hass) {
-      const oldHass = changedProperties.get("hass") as any;
-      // Load locks if we just got the hass object, or if we don't have locks yet
-      if (!oldHass || this.locks.length === 0) {
-        this.loadLocks().catch((e) => {
-          console.warn("Failed loading locks on hass update:", e);
-        });
-      }
-    }
-  }
-
   async loadLocks() {
+    if (this._loading) return;
+    this._loading = true;
     try {
       this.locks = await this.hass.connection.sendMessagePromise({
         type: "z2m_lock_manager/get_locks",
       });
-      if (this.locks.length > 0 && !this.selectedLock) {
-        this.selectedLock = this.locks[0].entity_id;
+      if (this.locks.length > 0) {
+        // Initialize selection if needed, or validate current selection
+        const lockExists = this.locks.some(l => l.entity_id === this.selectedLock);
+        if (!this.selectedLock || !lockExists) {
+          this.selectedLock = this.locks[0].entity_id;
+        }
       }
     } catch (err) {
       console.error("Failed to load locks", err);
-      // Don't throw, just leave locks as empty or keep previous state
+    } finally {
+      this._loading = false;
     }
   }
 
-  async setCode(
-    slot: string,
-    name: string,
-    code: string,
-    enabled: boolean,
-    userType: string,
-    hasFingerprint: boolean,
-    hasRfid: boolean,
-    autoRotate: boolean,
-    rotateIntervalHours: number,
-  ) {
+
+
+  private async handleSlotSave(e: CustomEvent) {
+    const data = e.detail;
+    this.actionState = { slot: data.slot, type: "saving" };
     try {
       await this.hass.connection.sendMessagePromise({
         type: "z2m_lock_manager/set_code",
         entity_id: this.selectedLock,
-        slot: parseInt(slot, 10),
-        name: name,
-        code: code,
-        enabled: enabled,
-        user_type: userType,
-        has_fingerprint: hasFingerprint,
-        has_rfid: hasRfid,
-        auto_rotate: autoRotate,
-        rotate_interval_hours: rotateIntervalHours,
+        slot: parseInt(data.slot, 10),
+        name: data.name,
+        code: data.code,
+        enabled: data.enabled,
+        user_type: data.userType,
+        has_fingerprint: data.hasFingerprint,
+        has_rfid: data.hasRfid,
+        auto_rotate: data.autoRotate,
+        rotate_interval_hours: data.rotateIntervalHours,
       });
       await this.loadLocks();
+      this.actionState = { slot: data.slot, type: "saved" };
     } catch (err) {
       console.error("Failed to set code", err);
+      this.actionState = null;
+      return;
     }
-  }
-
-  async clearCode(slot: string) {
-    try {
-      await this.hass.connection.sendMessagePromise({
-        type: "z2m_lock_manager/clear_code",
-        entity_id: this.selectedLock,
-        slot: parseInt(slot, 10),
-      });
-      await this.loadLocks();
-    } catch (err) {
-      console.error("Failed to clear code", err);
-    }
-  }
-
-  private handleLockChange(e: Event) {
-    const select = e.target as HTMLSelectElement;
-    this.selectedLock = select.value;
-    this.currentPage = 1;
-  }
-
-  private async handleSlotSave(e: CustomEvent) {
-    const detail = e.detail;
-    this.actionState = { slot: detail.slot, type: "saving" };
-
-    await this.setCode(
-      detail.slot,
-      detail.name,
-      detail.code,
-      detail.enabled,
-      detail.userType,
-      detail.hasFingerprint,
-      detail.hasRfid,
-      detail.autoRotate,
-      detail.rotateIntervalHours,
-    );
-
-    this.actionState = { slot: detail.slot, type: "saved" };
     setTimeout(() => {
-      if (
-        this.actionState?.slot === detail.slot &&
-        this.actionState?.type === "saved"
-      ) {
+      const state = this.actionState;
+      if (state && state.slot === data.slot && state.type === "saved") {
         this.actionState = null;
       }
     }, 2000);
   }
 
   private async handleSlotClear(e: CustomEvent) {
-    const detail = e.detail;
-    this.actionState = { slot: detail.slot, type: "clearing" };
-
-    await this.clearCode(detail.slot);
-
-    this.actionState = { slot: detail.slot, type: "cleared" };
+    const data = e.detail;
+    this.actionState = { slot: data.slot, type: "clearing" };
+    try {
+      await this.hass.connection.sendMessagePromise({
+        type: "z2m_lock_manager/clear_code",
+        entity_id: this.selectedLock,
+        slot: parseInt(data.slot, 10),
+      });
+      await this.loadLocks();
+      this.actionState = { slot: data.slot, type: "cleared" };
+    } catch (err) {
+      console.error("Failed to clear code", err);
+      this.actionState = null;
+      return;
+    }
     setTimeout(() => {
-      if (
-        this.actionState?.slot === detail.slot &&
-        this.actionState?.type === "cleared"
-      ) {
+      const state = this.actionState;
+      if (state && state.slot === data.slot && state.type === "cleared") {
         this.actionState = null;
       }
     }, 2000);
   }
 
   private handleSlotUpdate(e: CustomEvent) {
-    const detail = e.detail;
-    const lockIdx = this.locks.findIndex(
-      (l) => l.entity_id === this.selectedLock,
-    );
-    if (lockIdx > -1) {
-      if (!this.locks[lockIdx].slots[detail.slot]) {
-        this.locks[lockIdx].slots[detail.slot] = {
-          name: "",
-          code: "",
-          enabled: false,
-          user_type: "unrestricted",
-          auto_rotate: false,
-          rotate_interval_hours: 24,
-        };
-      }
-      this.locks[lockIdx].slots[detail.slot] = {
-        ...this.locks[lockIdx].slots[detail.slot],
-        ...detail.updates,
-      };
-      this.requestUpdate();
-    }
+    const { slot, updates } = e.detail;
+    const lockIdx = this.locks.findIndex(l => l.entity_id === this.selectedLock);
+    if (lockIdx === -1) return;
+
+    this.locks[lockIdx].slots[slot] = {
+      ...(this.locks[lockIdx].slots[slot] ?? EMPTY_SLOT),
+      ...updates,
+    };
+    this.requestUpdate();
   }
 
-  static override styles = panelStyles;
+  private _getChipState(slot: LockSlot | undefined): "active" | "guest" | "disabled" | "empty" {
+    if (!slot) return "empty";
+    if (!slot.enabled) return slot.name || slot.code ? "disabled" : "empty";
+    if (slot.auto_rotate) return "guest";
+    return "active";
+  }
+
+  private _getChipIcon(state: string) {
+    if (state === "guest") return ROTATE_ICON;
+    if (state === "active") return PERSON_ICON;
+    return LOCK_ICON;
+  }
 
   override render() {
+    const currentLock = this.locks.find(l => l.entity_id === this.selectedLock) || this.locks[0];
+    
     if (!this.hass || !this.locks.length) {
-      return html`<div class="card">${this.t("loading")}</div>`;
+      return html`
+        <div class="header">
+          <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
+          <span class="title">${this.t("title")}</span>
+        </div>
+        <div class="content">
+          <div class="empty-state">${this.t("loading")}</div>
+        </div>
+      `;
     }
 
-    const currentLockData = this.locks.find(
-      (l) => l.entity_id === this.selectedLock,
-    );
+    const slots = currentLock?.slots ?? {};
+    const maxSlots = currentLock?.max_slots ?? 10;
+    const selectedSlotData = this.selectedSlot ? (slots[this.selectedSlot] ?? { ...EMPTY_SLOT }) : null;
 
     return html`
       <div class="header">
-        <div class="header-left">
-          <ha-menu-button
-            .hass=${this.hass}
-            .narrow=${this.narrow}
-          ></ha-menu-button>
-          <div class="title">${this.t("title")}</div>
-        </div>
+        <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
+        <span class="title">${this.t("title")}</span>
       </div>
 
       <div class="content">
-        <div class="card">
-          <div class="lock-selector">
-            <label>${this.t("select_lock")}</label>
-            <select id="lock-select" @change=${this.handleLockChange}>
-              ${this.locks.map(
-                (lock) => html`
-                  <option
-                    value="${lock.entity_id}"
-                    ?selected=${lock.entity_id === this.selectedLock}
-                  >
-                    ${lock.name}
-                  </option>
-                `,
-              )}
-            </select>
-          </div>
-
-          <div class="slot-list">${this.renderSlots(currentLockData)}</div>
-          ${this.renderPagination(currentLockData)}
+        <div class="lock-tabs">
+          ${this.locks.map(lock => html`
+            <button
+              class="lock-tab ${lock.entity_id === this.selectedLock ? "active" : ""}"
+              @click=${() => {
+                this.selectedLock = lock.entity_id;
+                this.selectedSlot = null;
+                this._currentPage = 0;
+              }}
+            >
+              ${lock.name}
+            </button>
+          `)}
         </div>
+
+        <div class="overview-card">
+          <div class="section-title">${this.t("select_lock")}</div>
+          <div class="slot-grid">
+            ${this._renderSlotGrid(slots, maxSlots)}
+          </div>
+          ${this._renderPagination(maxSlots)}
+        </div>
+
+        ${this.selectedSlot && selectedSlotData ? html`
+          <div class="detail-card">
+            <div class="detail-header">
+              <span class="detail-title">
+                ${this.t("slot")} ${this.selectedSlot}
+                ${selectedSlotData.name ? ` · ${selectedSlotData.name}` : ""}
+              </span>
+              <button class="detail-close" @click=${() => this.selectedSlot = null}>✕</button>
+            </div>
+            <div class="detail-grid">
+              <z2m-lock-slot
+                .slotData=${selectedSlotData}
+                .slotStr=${this.selectedSlot}
+                .hass=${this.hass}
+                .currentTime=${this.currentTime}
+                .actionState=${this.actionState}
+                @save-slot=${this.handleSlotSave}
+                @clear-slot=${this.handleSlotClear}
+                @update-slot-data=${this.handleSlotUpdate}
+              ></z2m-lock-slot>
+            </div>
+          </div>
+        ` : ""}
       </div>
     `;
   }
 
-  private renderPagination(currentLockData: LockData | undefined) {
-    if (!currentLockData) return html``;
-    const maxSlots = currentLockData.max_slots || 10;
-    const totalPages = Math.ceil(maxSlots / 10);
-    if (totalPages <= 1) return html``;
+  private _renderSlotGrid(slots: Record<string, LockSlot>, maxSlots: number) {
+    const start = this._currentPage * this.PAGE_SIZE;
+    const end = Math.min(start + this.PAGE_SIZE, maxSlots);
+
+    return Array.from({ length: end - start }, (_, i) => {
+      const slotNum = String(start + i + 1);
+      const slot = slots[slotNum];
+      const state = this._getChipState(slot);
+
+      return html`
+        <div
+          class="slot-chip state-${state} ${this.selectedSlot === slotNum ? "selected" : ""}"
+          @click=${() => this.selectedSlot = (this.selectedSlot === slotNum ? null : slotNum)}
+          title="${slot?.name || ""}"
+        >
+          <span class="slot-chip-number">${this.t("slot")} ${slotNum}</span>
+          <span class="slot-chip-icon">${this._getChipIcon(state)}</span>
+          <span class="slot-chip-name">${slot?.name || "—"}</span>
+        </div>
+      `;
+    });
+  }
+
+  private _renderPagination(maxSlots: number) {
+    if (maxSlots <= this.PAGE_SIZE) return "";
+
+    const startIdx = this._currentPage * this.PAGE_SIZE + 1;
+    const endIdx = Math.min((this._currentPage + 1) * this.PAGE_SIZE, maxSlots);
 
     return html`
       <div class="pagination">
         <button
-          ?disabled=${this.currentPage <= 1}
-          @click=${() => {
-            this.currentPage--;
-          }}
-        >
-          ← ${this.t("prev_page")}
-        </button>
-        <span class="page-info">${this.currentPage} / ${totalPages}</span>
+          class="page-btn"
+          ?disabled=${this._currentPage === 0}
+          @click=${() => { this._currentPage--; this.selectedSlot = null; }}
+        >←</button>
+        <span class="page-info">
+          ${startIdx}–${endIdx} &nbsp;/&nbsp; ${maxSlots}
+        </span>
         <button
-          ?disabled=${this.currentPage >= totalPages}
-          @click=${() => {
-            this.currentPage++;
-          }}
-        >
-          ${this.t("next_page")} →
-        </button>
+          class="page-btn"
+          ?disabled=${(this._currentPage + 1) * this.PAGE_SIZE >= maxSlots}
+          @click=${() => { this._currentPage++; this.selectedSlot = null; }}
+        >→</button>
       </div>
     `;
-  }
-
-  private renderSlots(currentLockData: LockData | undefined) {
-    if (!currentLockData) {
-      return html``;
-    }
-
-    const slots = [];
-    const maxSlots = currentLockData.max_slots || 10;
-    const pageSize = 10;
-    const start = (this.currentPage - 1) * pageSize + 1;
-    const end = Math.min(this.currentPage * pageSize, maxSlots);
-    for (let i = start; i <= end; i++) {
-      const slotStr = i.toString();
-      const slotData = currentLockData.slots[slotStr] || {
-        name: "",
-        code: "",
-        enabled: false,
-        user_type: "unrestricted",
-        auto_rotate: false,
-        rotate_interval_hours: 24,
-      };
-
-      slots.push(html`
-        <z2m-lock-slot
-          .slotData=${slotData}
-          .slotStr=${slotStr}
-          .hass=${this.hass}
-          .currentTime=${this.currentTime}
-          .actionState=${this.actionState}
-          @save-slot=${this.handleSlotSave}
-          @clear-slot=${this.handleSlotClear}
-          @update-slot-data=${this.handleSlotUpdate}
-        ></z2m-lock-slot>
-      `);
-    }
-    return slots;
   }
 }
