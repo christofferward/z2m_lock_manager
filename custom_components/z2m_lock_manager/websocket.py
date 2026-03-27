@@ -82,7 +82,7 @@ def ws_get_locks(
                 "entity_id": lock_id,
                 "name": friendly_name,
                 "slots": lock_data.get("slots", {}),
-                "max_slots": lock_data.get("max_slots", max_slots),
+                "max_slots": max_slots, # Use the max_slots from config
             }
         )
 
@@ -124,6 +124,14 @@ async def ws_set_code(
     auto_rotate = msg.get("auto_rotate", False)
     rotate_interval_hours = msg.get("rotate_interval_hours", 24)
 
+    # Get max_slots from config to ensure store is kept in sync
+    max_slots = 10
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        locks = entry.options.get("locks", entry.data.get("locks", []))
+        if entity_id in locks:
+            max_slots = int(entry.options.get("max_slots", entry.data.get("max_slots", 10)))
+            break
+
     # If auto-rotate is on and no code was provided, generate one immediately.
     last_rotated: str | None = None
     if auto_rotate and enabled and not code:
@@ -150,6 +158,7 @@ async def ws_set_code(
     await store.async_update_slot(
         entity_id, slot, name, code, enabled, user_type,
         has_fingerprint, has_rfid, auto_rotate, rotate_interval_hours, last_rotated,
+        max_slots=max_slots,
     )
 
     connection.send_result(msg["id"], {"success": True})

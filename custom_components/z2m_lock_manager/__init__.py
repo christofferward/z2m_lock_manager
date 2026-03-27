@@ -111,7 +111,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Load persistent state
     store = Z2MLockManagerStore(hass)
     await store.async_load()
-    hass.data[DOMAIN][entry.entry_id] = {"data": entry.data, "store": store}
+    # Sync max_slots from config entry to store
+    locks = entry.options.get("locks", entry.data.get("locks", []))
+    max_slots = int(entry.options.get("max_slots", entry.data.get("max_slots", 10)))
+    for lock_id in locks:
+        store.ensure_lock(lock_id, max_slots=max_slots)
 
     # Make the store accessible to WebSocket handlers via the top-level domain key
     hass.data[DOMAIN]["store"] = store
