@@ -118,14 +118,17 @@ class Z2MLockManagerStore:
         """Return the Lock object for *entity_id*, or None."""
         return self.locks.get(entity_id)
 
-    def ensure_lock(self, entity_id: str, name: str = "", max_slots: int = 10) -> Lock:
+    def ensure_lock(self, entity_id: str, name: str = "", max_slots: Optional[int] = None) -> Lock:
         """Return (or create) the Lock object for *entity_id*."""
         if entity_id not in self.locks:
             self.locks[entity_id] = Lock(
                 entity_id=entity_id,
                 name=name or entity_id,
-                max_slots=max_slots,
+                max_slots=max_slots if max_slots is not None else 10,
             )
+        elif max_slots is not None:
+            # Update max_slots if it has changed in the config
+            self.locks[entity_id].max_slots = max_slots
         return self.locks[entity_id]
 
     def ensure_slot(self, lock: Lock, slot: int) -> Slot:
@@ -174,9 +177,10 @@ class Z2MLockManagerStore:
         auto_rotate: bool = False,
         rotate_interval_hours: int = 24,
         last_rotated: str | None = None,
+        max_slots: Optional[int] = None,
     ) -> None:
         """Update (or create) a slot and persist."""
-        lock = self.ensure_lock(entity_id)
+        lock = self.ensure_lock(entity_id, max_slots=max_slots)
         s = self.ensure_slot(lock, slot)
         s.name = name
         s.code = code
