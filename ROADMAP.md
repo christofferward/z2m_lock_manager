@@ -13,19 +13,11 @@
 - **Admin-Only Panel** — Side panel is restricted to Home Assistant admin users (`require_admin`)
 - **Save/Clear Feedback** — Visual status indicators when saving or clearing a slot
 - **Configurable Slot Count** — Define the maximum number of code slots per lock via configuration (defaults to 10)
+- **Date-Based User Codes** — Schedule codes to automatically enable or disable on specific dates (valid_from/valid_to) for guests and service access
 
 ---
 
 ## Planned
-
-### Date-Based User Codes
-
-> Allow PIN codes to be valid only between specific start and end dates.
-
-- Add `valid_from` and `valid_to` date/time fields per slot
-- Backend enforces the schedule: auto-enable at `valid_from`, auto-disable at `valid_to`
-- UI shows the active window and a countdown to enable/disable
-- Useful for Airbnb guests, recurring cleaners, etc.
 
 ### Event-Based Notifications
 
@@ -54,4 +46,4 @@
 
 ---
 
-_Last updated: 2026-03-20_
+_Last updated: 2026-03-28_

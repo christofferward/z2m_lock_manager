@@ -31,10 +31,44 @@ export class Z2MLockSlot extends LitElement {
     return `${h}h ${m}m`;
   }
 
+  private _formatDateForInput(dateStr?: string): string {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  private _getScheduleState(): string | null {
+    const sd = this.slotData;
+    if (!sd.enabled) return null;
+    if (!sd.valid_from && !sd.valid_to) return null;
+
+    const now = this.currentTime.getTime();
+    const vf = sd.valid_from ? new Date(sd.valid_from).getTime() : 0;
+    const vt = sd.valid_to ? new Date(sd.valid_to).getTime() : Infinity;
+
+    const formatDiff = (diffMs: number) => {
+      const d = Math.floor(diffMs / 86400000);
+      const h = Math.floor((diffMs % 86400000) / 3600000);
+      const m = Math.floor((diffMs % 3600000) / 60000);
+      return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
+    };
+
+    if (vf && now < vf) {
+      return `${this.t("enables_in")}: ${formatDiff(vf - now)}`;
+    }
+    if (vt && now < vt) {
+      return `${this.t("disables_in")}: ${formatDiff(vt - now)}`;
+    }
+    return this.t("expired");
+  }
+
   override render() {
     const sd = this.slotData;
     const timeLeft = sd.auto_rotate && sd.last_rotated ? this._getTimeRemaining(sd.last_rotated, sd.rotate_interval_hours ?? 24) : null;
     const expired = timeLeft === this.t("expired");
+    const scheduleState = !sd.auto_rotate ? this._getScheduleState() : null;
 
     return html`
       <div class="input-group">
@@ -70,6 +104,25 @@ export class Z2MLockSlot extends LitElement {
             <option value="non_access">${this.t("user_type_non_access")}</option>
           </select>
         </div>
+        <div class="input-group" style="display: flex; gap: 1rem;">
+          <div style="flex: 1;">
+            <label>${this.t("valid_from")}</label>
+            <input type="datetime-local" id="valid_from" .value="${this._formatDateForInput(sd.valid_from)}" />
+          </div>
+          <div style="flex: 1;">
+            <label>${this.t("valid_to")}</label>
+            <input type="datetime-local" id="valid_to" .value="${this._formatDateForInput(sd.valid_to)}" />
+          </div>
+        </div>
+        ${scheduleState ? html`
+          <div class="rotate-info" style="margin-top: 8px;">
+             <span class="dot ${scheduleState === this.t("expired") ? "dot-red" : "dot-green"}"></span>
+             ${scheduleState}
+             ${sd.pin_synced_to_lock 
+                ? html` | <span style="color: #4caf50; font-size: 0.9em; font-weight: 500;">${this.t("status_synced")}</span>` 
+                : html` | <span style="color: #ff9800; font-size: 0.9em; font-weight: 500;">${this.t("status_pending")}</span>`}
+          </div>
+        ` : ""}
       `}
 
       <div class="toggles-row">
@@ -129,6 +182,8 @@ export class Z2MLockSlot extends LitElement {
         hasRfid: q<any>("rfid")?.checked ?? false,
         autoRotate: q<any>("autorotate")?.checked ?? false,
         rotateIntervalHours: parseInt(q<HTMLInputElement>("interval")?.value ?? "24", 10),
+        validFrom: q<HTMLInputElement>("valid_from")?.value ? new Date(q<HTMLInputElement>("valid_from").value).toISOString() : null,
+        validTo: q<HTMLInputElement>("valid_to")?.value ? new Date(q<HTMLInputElement>("valid_to").value).toISOString() : null,
       },
       bubbles: true, composed: true,
     }));

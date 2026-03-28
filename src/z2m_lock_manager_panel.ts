@@ -115,6 +115,8 @@ export class Z2MLockManagerPanel extends LitElement {
         has_rfid: data.hasRfid,
         auto_rotate: data.autoRotate,
         rotate_interval_hours: data.rotateIntervalHours,
+        valid_from: data.validFrom,
+        valid_to: data.validTo,
       });
       await this.loadLocks();
       this.actionState = { slot: data.slot, type: "saved" };

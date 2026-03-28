@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, WS_GET_LOCKS, WS_SET_CODE, WS_CLEAR_CODE
 from .storage import Z2MLockManagerStore
@@ -104,6 +105,8 @@ def ws_get_locks(
         vol.Optional("has_rfid", default=False): bool,
         vol.Optional("auto_rotate", default=False): bool,
         vol.Optional("rotate_interval_hours", default=24): int,
+        vol.Optional("valid_from"): vol.Any(str, None),
+        vol.Optional("valid_to"): vol.Any(str, None),
     }
 )
 @websocket_api.async_response
@@ -123,6 +126,8 @@ async def ws_set_code(
     has_rfid = msg.get("has_rfid", False)
     auto_rotate = msg.get("auto_rotate", False)
     rotate_interval_hours = msg.get("rotate_interval_hours", 24)
+    valid_from = msg.get("valid_from")
+    valid_to = msg.get("valid_to")
 
     # Get max_slots from config to ensure store is kept in sync
     max_slots = 10
@@ -146,7 +151,23 @@ async def ws_set_code(
         return
 
     topic = f"zigbee2mqtt/{z2m_name}/set"
-    if enabled:
+    
+    active_now = True
+    now = dt_util.utcnow()
+    
+    if valid_from and valid_from.strip():
+        dt_val = dt_util.parse_datetime(valid_from)
+        if dt_val and dt_val > now:
+            active_now = False
+
+    if valid_to and valid_to.strip():
+        dt_val = dt_util.parse_datetime(valid_to)
+        if dt_val and dt_val < now:
+            active_now = False
+
+    pin_synced_to_lock = enabled and active_now
+
+    if pin_synced_to_lock:
         payload = json.dumps(
             {"pin_code": {"user": slot, "user_type": user_type, "pin_code": code}}
         )
@@ -158,6 +179,7 @@ async def ws_set_code(
     await store.async_update_slot(
         entity_id, slot, name, code, enabled, user_type,
         has_fingerprint, has_rfid, auto_rotate, rotate_interval_hours, last_rotated,
+        valid_from=valid_from, valid_to=valid_to, pin_synced_to_lock=pin_synced_to_lock,
         max_slots=max_slots,
     )
 

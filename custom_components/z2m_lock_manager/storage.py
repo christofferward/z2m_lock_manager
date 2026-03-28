@@ -27,6 +27,9 @@ class Slot:
     auto_rotate: bool = False
     rotate_interval_hours: int = 24
     last_rotated: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_to: Optional[str] = None
+    pin_synced_to_lock: bool = False
 
 
 @dataclass
@@ -75,6 +78,9 @@ class Z2MLockManagerStore:
                     auto_rotate=slot_raw.get("auto_rotate", False),
                     rotate_interval_hours=slot_raw.get("rotate_interval_hours", 24),
                     last_rotated=slot_raw.get("last_rotated"),
+                    valid_from=slot_raw.get("valid_from"),
+                    valid_to=slot_raw.get("valid_to"),
+                    pin_synced_to_lock=slot_raw.get("pin_synced_to_lock", False),
                 )
             self.locks[entity_id] = Lock(
                 entity_id=entity_id,
@@ -101,6 +107,9 @@ class Z2MLockManagerStore:
                             "auto_rotate": s.auto_rotate,
                             "rotate_interval_hours": s.rotate_interval_hours,
                             "last_rotated": s.last_rotated,
+                            "valid_from": s.valid_from,
+                            "valid_to": s.valid_to,
+                            "pin_synced_to_lock": s.pin_synced_to_lock,
                         }
                         for s in lock.slots.values()
                     },
@@ -158,6 +167,9 @@ class Z2MLockManagerStore:
                     "auto_rotate": s.auto_rotate,
                     "rotate_interval_hours": s.rotate_interval_hours,
                     "last_rotated": s.last_rotated,
+                    "valid_from": s.valid_from,
+                    "valid_to": s.valid_to,
+                    "pin_synced_to_lock": s.pin_synced_to_lock,
                 }
                 for s in lock.slots.values()
             },
@@ -177,6 +189,9 @@ class Z2MLockManagerStore:
         auto_rotate: bool = False,
         rotate_interval_hours: int = 24,
         last_rotated: str | None = None,
+        valid_from: str | None = None,
+        valid_to: str | None = None,
+        pin_synced_to_lock: bool = False,
         max_slots: Optional[int] = None,
     ) -> None:
         """Update (or create) a slot and persist."""
@@ -191,6 +206,9 @@ class Z2MLockManagerStore:
         s.auto_rotate = auto_rotate
         s.rotate_interval_hours = rotate_interval_hours
         s.last_rotated = last_rotated
+        s.valid_from = valid_from
+        s.valid_to = valid_to
+        s.pin_synced_to_lock = pin_synced_to_lock
         await self.async_save()
 
     async def async_clear_slot(self, entity_id: str, slot: int) -> None:

@@ -8,6 +8,9 @@ export interface LockSlot {
   auto_rotate?: boolean;
   rotate_interval_hours?: number;
   last_rotated?: string;
+  valid_from?: string;
+  valid_to?: string;
+  pin_synced_to_lock?: boolean;
 }
 
 export interface LockData {

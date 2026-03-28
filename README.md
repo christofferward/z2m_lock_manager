@@ -10,6 +10,7 @@ Provides a dedicated sidebar panel to configure user code slots per lock — no 
 
 - **PIN Code Management** — Set, view, and clear user PIN codes per slot
 - **Configurable Slot Count** — Define how many code slots (1–100) to manage per lock
+- **Date-Based Codes** — Schedule codes to automatically enable and disable on specific dates and times
 - **Auto-Rotating Guest Codes** — Generate temporary codes that auto-rotate on a schedule (e.g. every 24 h) with an expiration countdown
 - **Multi-Lock Support** — Manage all your Z2M-connected locks from one panel
 - **Fingerprint & RFID Tracking** — Mark which users have enrolled biometric credentials
@@ -89,6 +90,13 @@ After installation, a **Z2M Locks** entry appears in the Home Assistant sidebar 
 5. The code auto-rotates when the interval expires
 6. A `z2m_lock_manager_code_rotated` event fires on each rotation — use this in automations to notify guests of their new code
 
+### Date-Based Codes
+
+1. Set the **Valid From** and **Valid To** dates and times on a slot
+2. Enable the slot and click **Save**
+3. The integration will automatically enable the code at the start time and disable it when the end time is reached
+4. The UI displays the active window and a countdown to when the code enables or disables
+
 ---
 
 ## Architecture
@@ -145,7 +153,7 @@ automation:
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned features including date-based codes and more.
+See [ROADMAP.md](ROADMAP.md) for planned features and upcoming additions.
 
 ---
 

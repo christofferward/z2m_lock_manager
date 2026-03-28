@@ -70,6 +70,15 @@
               has_fingerprint: false,
               has_rfid: false,
             },
+            4: {
+              name: "Cleaner (Scheduled)",
+              code: "991122",
+              enabled: true,
+              user_type: "unrestricted",
+              valid_from: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+              valid_to: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+              pin_synced_to_lock: false,
+            },
           },
         },
         {
@@ -96,6 +105,11 @@
                   code: msg.code,
                   enabled: msg.enabled,
                   user_type: msg.user_type,
+                  valid_from: msg.valid_from,
+                  valid_to: msg.valid_to,
+                  auto_rotate: msg.auto_rotate,
+                  rotate_interval_hours: msg.rotate_interval_hours,
+                  pin_synced_to_lock: true,
                 };
               }
               return { success: true };
