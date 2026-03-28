@@ -9,5 +9,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/christofferward/z2m_lock_manager/issues",
   "requirements": [],
-  "version": "1.2.1"
+  "version": "1.4.0"
 }
