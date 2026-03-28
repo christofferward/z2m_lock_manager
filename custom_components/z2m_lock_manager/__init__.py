@@ -42,7 +42,8 @@ def _get_z2m_friendly_name(hass: HomeAssistant, entity_id: str) -> str | None:
 async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> None:
     """Check slots for auto-rotation and date-based schedule enforcement."""
     from homeassistant.util import dt as dt_util
-    now = dt_util.utcnow()
+    now_utc = dt_util.utcnow()
+    now_local = dt_util.now()
 
     for entity_id, lock in store.locks.items():
         for slot_int, slot in lock.slots.items():
@@ -60,7 +61,7 @@ async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> N
             if slot.valid_from and slot.valid_from.strip():
                 try:
                     vf = dt_util.parse_datetime(slot.valid_from)
-                    if vf and vf > now:
+                    if vf and vf > now_utc:
                         active_now = False
                 except Exception:
                     pass
@@ -68,11 +69,25 @@ async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> N
             if slot.valid_to and slot.valid_to.strip():
                 try:
                     vt = dt_util.parse_datetime(slot.valid_to)
-                    if vt and vt < now:
+                    if vt and vt < now_utc:
                         active_now = False
                         expired = True
                 except Exception:
                     pass
+                    
+            if active_now and slot.recurring_days:
+                if now_local.weekday() not in slot.recurring_days:
+                    active_now = False
+                else:
+                    current_time = now_local.strftime("%H:%M")
+                    if slot.recurring_start_time and slot.recurring_end_time and slot.recurring_start_time > slot.recurring_end_time:
+                        if not (current_time >= slot.recurring_start_time or current_time <= slot.recurring_end_time):
+                            active_now = False
+                    else:
+                        if slot.recurring_start_time and current_time < slot.recurring_start_time:
+                            active_now = False
+                        if slot.recurring_end_time and current_time > slot.recurring_end_time:
+                            active_now = False
             
             # If crossed into active window
             if active_now and not slot.pin_synced_to_lock:
@@ -83,7 +98,9 @@ async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> N
                 await store.async_update_slot(
                     entity_id, slot_int, slot.name, slot.code, slot.enabled, slot.user_type,
                     slot.has_fingerprint, slot.has_rfid, slot.auto_rotate, slot.rotate_interval_hours,
-                    slot.last_rotated, slot.valid_from, slot.valid_to, pin_synced_to_lock=True,
+                    slot.last_rotated, slot.valid_from, slot.valid_to,
+                    recurring_days=slot.recurring_days, recurring_start_time=slot.recurring_start_time, recurring_end_time=slot.recurring_end_time, 
+                    pin_synced_to_lock=True,
                     max_slots=lock.max_slots,
                 )
                 _LOGGER.info("Date-based code enabled for %s on %s", slot.name, entity_id)
@@ -108,7 +125,9 @@ async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> N
                 await store.async_update_slot(
                     entity_id, slot_int, slot.name, slot.code, enabled_state, slot.user_type,
                     slot.has_fingerprint, slot.has_rfid, slot.auto_rotate, slot.rotate_interval_hours,
-                    slot.last_rotated, slot.valid_from, slot.valid_to, pin_synced_to_lock=False,
+                    slot.last_rotated, slot.valid_from, slot.valid_to,
+                    recurring_days=slot.recurring_days, recurring_start_time=slot.recurring_start_time, recurring_end_time=slot.recurring_end_time, 
+                    pin_synced_to_lock=False,
                     max_slots=lock.max_slots,
                 )
 
@@ -124,7 +143,7 @@ async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> N
                             # if offset-naive, assume UTC (though fromisoformat handles tz if present)
                             if last_rotated.tzinfo is None:
                                 last_rotated = last_rotated.replace(tzinfo=timezone.utc)
-                            if now >= last_rotated + timedelta(hours=slot.rotate_interval_hours):
+                            if now_utc >= last_rotated + timedelta(hours=slot.rotate_interval_hours):
                                 should_rotate = True
                     except Exception:
                         should_rotate = True
@@ -154,9 +173,12 @@ async def _check_schedules(hass: HomeAssistant, store: Z2MLockManagerStore) -> N
                         slot.has_rfid,
                         True,
                         slot.rotate_interval_hours,
-                        now.isoformat(),
+                        now_utc.isoformat(),
                         slot.valid_from,
                         slot.valid_to,
+                        recurring_days=slot.recurring_days, 
+                        recurring_start_time=slot.recurring_start_time, 
+                        recurring_end_time=slot.recurring_end_time,
                         pin_synced_to_lock=True,
                         max_slots=lock.max_slots,
                     )

@@ -10,6 +10,9 @@ export interface LockSlot {
   last_rotated?: string;
   valid_from?: string;
   valid_to?: string;
+  recurring_days?: number[];
+  recurring_start_time?: string;
+  recurring_end_time?: string;
   pin_synced_to_lock?: boolean;
 }
 

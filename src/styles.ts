@@ -170,6 +170,30 @@ export const panelStyles = css`
     color: #29b6f6;
   }
 
+  /* State colours — scheduled & currently active */
+  .slot-chip.state-scheduled-active {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, #ab47bc 20%, var(--card-background-color)),
+      color-mix(in srgb, #8e24aa 10%, var(--card-background-color))
+    );
+  }
+  .slot-chip.state-scheduled-active .slot-chip-icon {
+    color: #ab47bc;
+  }
+
+  /* State colours — scheduled but outside active window */
+  .slot-chip.state-scheduled-inactive {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, #ff9800 18%, var(--card-background-color)),
+      color-mix(in srgb, #e65100 10%, var(--card-background-color))
+    );
+  }
+  .slot-chip.state-scheduled-inactive .slot-chip-icon {
+    color: #ffa726;
+  }
+
   /* State colours — disabled (inactive but configured) */
   .slot-chip.state-disabled {
     background: linear-gradient(
@@ -269,9 +293,6 @@ export const panelStyles = css`
   }
 
   .detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
     margin-bottom: 16px;
   }
   .detail-footer {
@@ -345,9 +366,24 @@ export const panelStyles = css`
 
 export const slotStyles = css`
   :host {
-    display: contents;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
+  .form-row {
+    display: flex;
+    gap: 1rem;
+  }
+  .form-row > * {
+    flex: 1;
+    min-width: 0;
+  }
+  @media (max-width: 480px) {
+    .form-row {
+      flex-direction: column;
+    }
+  }
 
   /* Form elements */
   .input-group {
@@ -365,6 +401,9 @@ export const slotStyles = css`
   input[type="text"],
   input[type="password"],
   input[type="number"],
+  input[type="time"],
+  input[type="date"],
+  input[type="datetime-local"],
   select {
     padding: 6px 8px;
     font-size: 14px;
@@ -392,7 +431,6 @@ export const slotStyles = css`
     padding-right: 4px;
   }
 
-
   .code-wrapper {
     display: flex;
     gap: 4px;
@@ -416,6 +454,35 @@ export const slotStyles = css`
   }
   .btn-icon:hover {
     background: var(--divider-color);
+  }
+
+  /* Day circles */
+  .days-wrap {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .day-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .day-btn.selected {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
   }
 
 

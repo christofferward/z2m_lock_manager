@@ -29,6 +29,9 @@ class Slot:
     last_rotated: Optional[str] = None
     valid_from: Optional[str] = None
     valid_to: Optional[str] = None
+    recurring_days: list[int] = field(default_factory=list)
+    recurring_start_time: Optional[str] = None
+    recurring_end_time: Optional[str] = None
     pin_synced_to_lock: bool = False
 
 
@@ -80,6 +83,9 @@ class Z2MLockManagerStore:
                     last_rotated=slot_raw.get("last_rotated"),
                     valid_from=slot_raw.get("valid_from"),
                     valid_to=slot_raw.get("valid_to"),
+                    recurring_days=slot_raw.get("recurring_days", []),
+                    recurring_start_time=slot_raw.get("recurring_start_time"),
+                    recurring_end_time=slot_raw.get("recurring_end_time"),
                     pin_synced_to_lock=slot_raw.get("pin_synced_to_lock", False),
                 )
             self.locks[entity_id] = Lock(
@@ -109,6 +115,9 @@ class Z2MLockManagerStore:
                             "last_rotated": s.last_rotated,
                             "valid_from": s.valid_from,
                             "valid_to": s.valid_to,
+                            "recurring_days": s.recurring_days,
+                            "recurring_start_time": s.recurring_start_time,
+                            "recurring_end_time": s.recurring_end_time,
                             "pin_synced_to_lock": s.pin_synced_to_lock,
                         }
                         for s in lock.slots.values()
@@ -169,6 +178,9 @@ class Z2MLockManagerStore:
                     "last_rotated": s.last_rotated,
                     "valid_from": s.valid_from,
                     "valid_to": s.valid_to,
+                    "recurring_days": s.recurring_days,
+                    "recurring_start_time": s.recurring_start_time,
+                    "recurring_end_time": s.recurring_end_time,
                     "pin_synced_to_lock": s.pin_synced_to_lock,
                 }
                 for s in lock.slots.values()
@@ -191,6 +203,9 @@ class Z2MLockManagerStore:
         last_rotated: str | None = None,
         valid_from: str | None = None,
         valid_to: str | None = None,
+        recurring_days: list[int] | None = None,
+        recurring_start_time: str | None = None,
+        recurring_end_time: str | None = None,
         pin_synced_to_lock: bool = False,
         max_slots: Optional[int] = None,
     ) -> None:
@@ -208,6 +223,9 @@ class Z2MLockManagerStore:
         s.last_rotated = last_rotated
         s.valid_from = valid_from
         s.valid_to = valid_to
+        s.recurring_days = recurring_days or []
+        s.recurring_start_time = recurring_start_time
+        s.recurring_end_time = recurring_end_time
         s.pin_synced_to_lock = pin_synced_to_lock
         await self.async_save()
 

@@ -14,6 +14,10 @@
 - **Save/Clear Feedback** — Visual status indicators when saving or clearing a slot
 - **Configurable Slot Count** — Define the maximum number of code slots per lock via configuration (defaults to 10)
 - **Date-Based User Codes** — Schedule codes to automatically enable or disable on specific dates (valid_from/valid_to) for guests and service access
+- **Recurring Weekly Schedules** — Configure slots with day-of-week and time-of-day constraints (e.g. cleaner every Mon/Wed/Fri 09:00–17:00)
+- **User Type-Driven UI** — Config fields appear contextually based on the selected user type (Unrestricted, Year/Day Schedule, Week/Day Schedule, Non-Access)
+- **Schedule-Aware Slot Colors** — Slot chips visually distinguish between scheduled-active (purple) and scheduled-inactive (amber) states
+- **Responsive Mobile Layout** — Slot configuration form adapts to narrow screens with stacked inputs
 
 ---
 

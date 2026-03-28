@@ -107,6 +107,9 @@ def ws_get_locks(
         vol.Optional("rotate_interval_hours", default=24): int,
         vol.Optional("valid_from"): vol.Any(str, None),
         vol.Optional("valid_to"): vol.Any(str, None),
+        vol.Optional("recurring_days"): vol.Any([int], None),
+        vol.Optional("recurring_start_time"): vol.Any(str, None),
+        vol.Optional("recurring_end_time"): vol.Any(str, None),
     }
 )
 @websocket_api.async_response
@@ -128,6 +131,9 @@ async def ws_set_code(
     rotate_interval_hours = msg.get("rotate_interval_hours", 24)
     valid_from = msg.get("valid_from")
     valid_to = msg.get("valid_to")
+    recurring_days = msg.get("recurring_days", [])
+    recurring_start_time = msg.get("recurring_start_time")
+    recurring_end_time = msg.get("recurring_end_time")
 
     # Get max_slots from config to ensure store is kept in sync
     max_slots = 10
@@ -153,17 +159,33 @@ async def ws_set_code(
     topic = f"zigbee2mqtt/{z2m_name}/set"
     
     active_now = True
-    now = dt_util.utcnow()
+    now_utc = dt_util.utcnow()
+    now_local = dt_util.now()
     
     if valid_from and valid_from.strip():
         dt_val = dt_util.parse_datetime(valid_from)
-        if dt_val and dt_val > now:
+        if dt_val and dt_val > now_utc:
             active_now = False
 
     if valid_to and valid_to.strip():
         dt_val = dt_util.parse_datetime(valid_to)
-        if dt_val and dt_val < now:
+        if dt_val and dt_val < now_utc:
             active_now = False
+
+    if active_now and recurring_days:
+        if now_local.weekday() not in recurring_days:
+            active_now = False
+        else:
+            current_time = now_local.strftime("%H:%M")
+            if recurring_start_time and recurring_end_time and recurring_start_time > recurring_end_time:
+                # Crosses midnight
+                if not (current_time >= recurring_start_time or current_time <= recurring_end_time):
+                    active_now = False
+            else:
+                if recurring_start_time and current_time < recurring_start_time:
+                    active_now = False
+                if recurring_end_time and current_time > recurring_end_time:
+                    active_now = False
 
     pin_synced_to_lock = enabled and active_now
 
@@ -179,8 +201,9 @@ async def ws_set_code(
     await store.async_update_slot(
         entity_id, slot, name, code, enabled, user_type,
         has_fingerprint, has_rfid, auto_rotate, rotate_interval_hours, last_rotated,
-        valid_from=valid_from, valid_to=valid_to, pin_synced_to_lock=pin_synced_to_lock,
-        max_slots=max_slots,
+        valid_from=valid_from, valid_to=valid_to, 
+        recurring_days=recurring_days, recurring_start_time=recurring_start_time, recurring_end_time=recurring_end_time,
+        pin_synced_to_lock=pin_synced_to_lock, max_slots=max_slots,
     )
 
     connection.send_result(msg["id"], {"success": True})

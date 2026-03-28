@@ -66,7 +66,9 @@
               user_type: "unrestricted",
               auto_rotate: true,
               rotate_interval_hours: 24,
-              last_rotated: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+              last_rotated: new Date(
+                Date.now() - 6 * 60 * 60 * 1000,
+              ).toISOString(),
               has_fingerprint: false,
               has_rfid: false,
             },
@@ -74,9 +76,16 @@
               name: "Cleaner (Scheduled)",
               code: "991122",
               enabled: true,
-              user_type: "unrestricted",
-              valid_from: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-              valid_to: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+              user_type: "week_day_schedule",
+              valid_from: new Date(
+                Date.now() - 2 * 60 * 60 * 1000,
+              ).toISOString(),
+              valid_to: new Date(
+                Date.now() + 240 * 60 * 60 * 1000,
+              ).toISOString(),
+              recurring_days: [0, 2, 4], // Mon, Wed, Fri
+              recurring_start_time: "09:00",
+              recurring_end_time: "17:00",
               pin_synced_to_lock: false,
             },
           },
@@ -90,7 +99,7 @@
       ];
 
       panel.hass = {
-        language: "en", // change to "sv" to test Swedish
+        language: "sv", // change to "sv" to test Swedish
         connection: {
           sendMessagePromise: async (msg) => {
             console.log("Mock HA received message:", msg);
@@ -107,6 +116,9 @@
                   user_type: msg.user_type,
                   valid_from: msg.valid_from,
                   valid_to: msg.valid_to,
+                  recurring_days: msg.recurring_days,
+                  recurring_start_time: msg.recurring_start_time,
+                  recurring_end_time: msg.recurring_end_time,
                   auto_rotate: msg.auto_rotate,
                   rotate_interval_hours: msg.rotate_interval_hours,
                   pin_synced_to_lock: true,
