@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 
 import { LockData, LockSlot } from "./types";
 import { TRANSLATIONS } from "./translations";
-import { PERSON_ICON, ROTATE_ICON, LOCK_ICON } from "./icons";
+import { PERSON_ICON, ROTATE_ICON, LOCK_ICON, CLOCK_ICON } from "./icons";
 import { panelStyles } from "./styles";
 import "./z2m_lock_slot";
 
@@ -115,6 +115,11 @@ export class Z2MLockManagerPanel extends LitElement {
         has_rfid: data.hasRfid,
         auto_rotate: data.autoRotate,
         rotate_interval_hours: data.rotateIntervalHours,
+        valid_from: data.validFrom,
+        valid_to: data.validTo,
+        recurring_days: data.recurringDays,
+        recurring_start_time: data.recurringStartTime,
+        recurring_end_time: data.recurringEndTime,
       });
       await this.loadLocks();
       this.actionState = { slot: data.slot, type: "saved" };
@@ -167,16 +172,40 @@ export class Z2MLockManagerPanel extends LitElement {
     this.requestUpdate();
   }
 
-  private _getChipState(slot: LockSlot | undefined): "active" | "guest" | "disabled" | "empty" {
+  private _getChipState(slot: LockSlot | undefined): "active" | "guest" | "disabled" | "empty" | "scheduled-active" | "scheduled-inactive" {
     if (!slot) return "empty";
     if (!slot.enabled) return slot.name || slot.code ? "disabled" : "empty";
     if (slot.auto_rotate) return "guest";
-    return "active";
+    
+    const hasSchedule = slot.valid_from || slot.valid_to || (slot.recurring_days && slot.recurring_days.length > 0);
+    if (!hasSchedule) return "active";
+
+    // Check if currently within the schedule window
+    const now = this.currentTime;
+    const nowMs = now.getTime();
+    
+    // Check date boundaries
+    if (slot.valid_from && nowMs < new Date(slot.valid_from).getTime()) return "scheduled-inactive";
+    if (slot.valid_to && nowMs > new Date(slot.valid_to).getTime()) return "scheduled-inactive";
+    
+    // Check recurring day/time
+    if (slot.recurring_days && slot.recurring_days.length > 0) {
+      const dayIndex = (now.getDay() + 6) % 7; // Convert Sun=0 to Mon=0
+      if (!slot.recurring_days.includes(dayIndex)) return "scheduled-inactive";
+      
+      if (slot.recurring_start_time && slot.recurring_end_time) {
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        if (timeStr < slot.recurring_start_time || timeStr >= slot.recurring_end_time) return "scheduled-inactive";
+      }
+    }
+    
+    return "scheduled-active";
   }
 
   private _getChipIcon(state: string) {
     if (state === "guest") return ROTATE_ICON;
     if (state === "active") return PERSON_ICON;
+    if (state === "scheduled-active" || state === "scheduled-inactive") return CLOCK_ICON;
     return LOCK_ICON;
   }
 

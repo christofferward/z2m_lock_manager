@@ -13,19 +13,15 @@
 - **Admin-Only Panel** — Side panel is restricted to Home Assistant admin users (`require_admin`)
 - **Save/Clear Feedback** — Visual status indicators when saving or clearing a slot
 - **Configurable Slot Count** — Define the maximum number of code slots per lock via configuration (defaults to 10)
+- **Date-Based User Codes** — Schedule codes to automatically enable or disable on specific dates (valid_from/valid_to) for guests and service access
+- **Recurring Weekly Schedules** — Configure slots with day-of-week and time-of-day constraints (e.g. cleaner every Mon/Wed/Fri 09:00–17:00)
+- **User Type-Driven UI** — Config fields appear contextually based on the selected user type (Unrestricted, Year/Day Schedule, Week/Day Schedule, Non-Access)
+- **Schedule-Aware Slot Colors** — Slot chips visually distinguish between scheduled-active (purple) and scheduled-inactive (amber) states
+- **Responsive Mobile Layout** — Slot configuration form adapts to narrow screens with stacked inputs
 
 ---
 
 ## Planned
-
-### Date-Based User Codes
-
-> Allow PIN codes to be valid only between specific start and end dates.
-
-- Add `valid_from` and `valid_to` date/time fields per slot
-- Backend enforces the schedule: auto-enable at `valid_from`, auto-disable at `valid_to`
-- UI shows the active window and a countdown to enable/disable
-- Useful for Airbnb guests, recurring cleaners, etc.
 
 ### Event-Based Notifications
 
@@ -54,4 +50,4 @@
 
 ---
 
-_Last updated: 2026-03-20_
+_Last updated: 2026-03-28_

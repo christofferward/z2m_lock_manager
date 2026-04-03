@@ -10,12 +10,16 @@ Provides a dedicated sidebar panel to configure user code slots per lock — no 
 
 - **PIN Code Management** — Set, view, and clear user PIN codes per slot
 - **Configurable Slot Count** — Define how many code slots (1–100) to manage per lock
+- **Date-Based Codes** — Schedule codes to automatically enable and disable on specific dates and times
+- **Recurring Weekly Schedules** — Restrict access to specific days of the week and time windows (e.g. cleaner on Mon/Wed/Fri 09:00–17:00)
 - **Auto-Rotating Guest Codes** — Generate temporary codes that auto-rotate on a schedule (e.g. every 24 h) with an expiration countdown
 - **Multi-Lock Support** — Manage all your Z2M-connected locks from one panel
 - **Fingerprint & RFID Tracking** — Mark which users have enrolled biometric credentials
-- **User Type Control** — Set access levels: Unrestricted, Year/Day Schedule, Week/Day Schedule, or Non-Access
+- **User Type Control** — Set access levels: Unrestricted, Year/Day Schedule, Week/Day Schedule, or Non-Access — UI adapts to show relevant fields only
+- **Schedule-Aware Slot Colors** — At-a-glance color coding distinguishes active, inactive, guest, scheduled, and disabled slots
 - **Admin-Only Access** — Panel is only visible to Home Assistant admin users
 - **Multi-Language** — English 🇬🇧 and Swedish 🇸🇪 built in
+- **Responsive Design** — Works on desktop and mobile screens
 - **HA Events** — Fires `z2m_lock_manager_code_rotated` events for automations
 
 ---
@@ -89,7 +93,27 @@ After installation, a **Z2M Locks** entry appears in the Home Assistant sidebar 
 5. The code auto-rotates when the interval expires
 6. A `z2m_lock_manager_code_rotated` event fires on each rotation — use this in automations to notify guests of their new code
 
----
+### Date-Based Codes
+
+1. Set the **User Type** to _Year/Day Schedule_ or _Week/Day Schedule_
+2. Set the **Valid From** and **Valid To** dates on a slot
+3. For _Week/Day Schedule_, select which **days of the week** the code should be active and set the **Start/End time**
+4. Enable the slot and click **Save**
+5. The integration will automatically enable the code when it enters the active window and disable it when it leaves
+6. The UI displays the active window and a countdown to when the code enables or disables
+
+### Slot Status Colors
+
+Each slot chip in the grid is color-coded to give you an at-a-glance overview:
+
+| Color | State | Meaning |
+| --- | --- | --- |
+| 🟢 **Green** | Active | Unrestricted user — code is always active on the lock |
+| 🔵 **Blue** | Guest | Temporary auto-rotating code with an expiration timer |
+| 🟣 **Purple** | Scheduled (Active) | User has a schedule AND is currently within the active window — code is live on the lock right now |
+| 🟠 **Amber** | Scheduled (Inactive) | User has a schedule but is currently outside the date range, wrong day, or outside time window — code is not on the lock |
+| 🔴 **Red** | Disabled | Slot is configured but the Enabled toggle is off |
+| ⚫ **Grey** | Empty | No code configured in this slot |
 
 ## Architecture
 
@@ -145,7 +169,7 @@ automation:
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned features including date-based codes and more.
+See [ROADMAP.md](ROADMAP.md) for planned features and upcoming additions.
 
 ---
 
