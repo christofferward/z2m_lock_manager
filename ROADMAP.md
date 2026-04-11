@@ -18,6 +18,7 @@
 - **User Type-Driven UI** — Config fields appear contextually based on the selected user type (Unrestricted, Year/Day Schedule, Week/Day Schedule, Non-Access)
 - **Schedule-Aware Slot Colors** — Slot chips visually distinguish between scheduled-active (purple) and scheduled-inactive (amber) states
 - **Responsive Mobile Layout** — Slot configuration form adapts to narrow screens with stacked inputs
+- **Pre-Commit Build Hook** — Git hook automatically builds the frontend JS before every commit, preventing stale builds from being checked in
 
 ---
 
@@ -50,4 +51,4 @@
 
 ---
 
-_Last updated: 2026-03-28_
+_Last updated: 2026-04-11_
