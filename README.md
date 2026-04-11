@@ -184,6 +184,9 @@ Contributions are welcome! Please open an issue or pull request on [GitHub](http
 3. Run the dev server: `npm run dev` (opens a mock panel at `localhost:5173`)
 4. Build for production: `npm run build` (outputs to `custom_components/z2m_lock_manager/frontend/`)
 
+> [!NOTE]
+> A **pre-commit hook** automatically runs `npm run build` and stages the compiled JS before every commit. This ensures the checked-in build always matches the TypeScript source. The hook is located at `.git/hooks/pre-commit`.
+
 ### What to Edit
 
 | What you want to change             | File(s) to edit                                                                                   |
