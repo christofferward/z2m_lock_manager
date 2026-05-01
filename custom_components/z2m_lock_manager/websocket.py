@@ -31,11 +31,6 @@ def _require_store(hass: HomeAssistant) -> Z2MLockManagerStore:
 
 
 def _get_z2m_friendly_name(hass: HomeAssistant, entity_id: str) -> str | None:
-    """Resolve the Zigbee2MQTT friendly name for a given entity.
-
-    Looks up the entity in the entity registry, finds its parent device,
-    and returns the device name (which Z2M sets to the friendly name).
-    """
     ent_reg = er.async_get(hass)
     entry = ent_reg.async_get(entity_id)
     if entry is None or entry.device_id is None:
@@ -61,7 +56,6 @@ def ws_get_locks(
     """Return all configured locks and their slot data."""
     store = _require_store(hass)
 
-    # Collect lock entity IDs from every config entry for this domain.
     configured: list[str] = []
     max_slots = 10
     for entry in hass.config_entries.async_entries(DOMAIN):
@@ -83,7 +77,7 @@ def ws_get_locks(
                 "entity_id": lock_id,
                 "name": friendly_name,
                 "slots": lock_data.get("slots", {}),
-                "max_slots": max_slots, # Use the max_slots from config
+                "max_slots": max_slots,
             }
         )
 
@@ -135,7 +129,6 @@ async def ws_set_code(
     recurring_start_time = msg.get("recurring_start_time")
     recurring_end_time = msg.get("recurring_end_time")
 
-    # Get max_slots from config to ensure store is kept in sync
     max_slots = 10
     for entry in hass.config_entries.async_entries(DOMAIN):
         locks = entry.options.get("locks", entry.data.get("locks", []))
@@ -143,7 +136,6 @@ async def ws_set_code(
             max_slots = int(entry.options.get("max_slots", entry.data.get("max_slots", 10)))
             break
 
-    # If auto-rotate is on and no code was provided, generate one immediately.
     last_rotated: str | None = None
     if auto_rotate and enabled and not code:
         code = str(random.randint(100000, 999999))
@@ -178,7 +170,6 @@ async def ws_set_code(
         else:
             current_time = now_local.strftime("%H:%M")
             if recurring_start_time and recurring_end_time and recurring_start_time > recurring_end_time:
-                # Crosses midnight
                 if not (current_time >= recurring_start_time or current_time <= recurring_end_time):
                     active_now = False
             else:
@@ -201,10 +192,14 @@ async def ws_set_code(
     await store.async_update_slot(
         entity_id, slot, name, code, enabled, user_type,
         has_fingerprint, has_rfid, auto_rotate, rotate_interval_hours, last_rotated,
-        valid_from=valid_from, valid_to=valid_to, 
+        valid_from=valid_from, valid_to=valid_to,
         recurring_days=recurring_days, recurring_start_time=recurring_start_time, recurring_end_time=recurring_end_time,
         pin_synced_to_lock=pin_synced_to_lock, max_slots=max_slots,
     )
+
+    cb = hass.data.get(DOMAIN, {}).get("slot_updated_callback")
+    if cb:
+        cb(entity_id, slot)
 
     connection.send_result(msg["id"], {"success": True})
 
@@ -238,6 +233,10 @@ async def ws_clear_code(
     await hass.services.async_call("mqtt", "publish", {"topic": topic, "payload": payload})
 
     await store.async_clear_slot(entity_id, slot)
+
+    cb = hass.data.get(DOMAIN, {}).get("slot_updated_callback")
+    if cb:
+        cb(entity_id, slot)
 
     connection.send_result(msg["id"], {"success": True})
 
