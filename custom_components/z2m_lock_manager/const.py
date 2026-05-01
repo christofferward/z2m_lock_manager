@@ -1,7 +1,8 @@
 """Constants for the Zigbee2MQTT Lock Manager integration."""
 
 DOMAIN = "z2m_lock_manager"
-PLATFORMS: list[str] = []  # UI-only integration: no entity platforms
+PLATFORMS: list[str] = ["sensor"]
+
 
 # --- Storage ---
 STORAGE_KEY = f"{DOMAIN}.store"
@@ -25,3 +26,5 @@ WS_NS = DOMAIN
 WS_GET_LOCKS = f"{WS_NS}/get_locks"
 WS_SET_CODE = f"{WS_NS}/set_code"
 WS_CLEAR_CODE = f"{WS_NS}/clear_code"
+MAX_LOG_ENTRIES = 10
+
