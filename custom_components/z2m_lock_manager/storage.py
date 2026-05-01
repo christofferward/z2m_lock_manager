@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
+from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION, MAX_LOG_ENTRIES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class Lock:
     name: str
     max_slots: int = 10
     slots: dict[int, Slot] = field(default_factory=dict)
+    log: list[dict] = field(default_factory=list)
 
 
 class Z2MLockManagerStore:
@@ -93,6 +95,7 @@ class Z2MLockManagerStore:
                 name=lock_raw.get("name", entity_id),
                 max_slots=lock_raw.get("max_slots", 10),
                 slots=slots,
+                log=lock_raw.get("log", []),
             )
 
     async def async_save(self) -> None:
@@ -102,6 +105,7 @@ class Z2MLockManagerStore:
                 entity_id: {
                     "name": lock.name,
                     "max_slots": lock.max_slots,
+                    "log": lock.log,
                     "slots": {
                         str(s.slot): {
                             "name": s.name,
@@ -145,7 +149,6 @@ class Z2MLockManagerStore:
                 max_slots=max_slots if max_slots is not None else 10,
             )
         elif max_slots is not None:
-            # Update max_slots if it has changed in the config
             self.locks[entity_id].max_slots = max_slots
         return self.locks[entity_id]
 
@@ -155,12 +158,33 @@ class Z2MLockManagerStore:
             lock.slots[slot] = Slot(slot=slot)
         return lock.slots[slot]
 
-    def get_lock_data(self, entity_id: str) -> dict:
-        """Return a raw-dict view of the lock for the legacy websocket API.
+    async def async_add_log_entry(
+        self,
+        entity_id: str,
+        action: str,
+        slot: int | None,
+        name: str,
+        source: str,
+    ) -> None:
+        """Add a log entry for a lock event and persist."""
+        lock = self.get_lock(entity_id)
+        if lock is None:
+            return
 
-        Kept for backwards compatibility during the transition; callers should
-        prefer ``get_lock()`` and typed access where possible.
-        """
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action": action,
+            "slot": slot,
+            "name": name,
+            "source": source,
+        }
+
+        lock.log.insert(0, entry)
+        lock.log = lock.log[:MAX_LOG_ENTRIES]
+        await self.async_save()
+
+    def get_lock_data(self, entity_id: str) -> dict:
+        """Return a raw-dict view of the lock for the legacy websocket API."""
         lock = self.get_lock(entity_id)
         if lock is None:
             return {"slots": {}}
