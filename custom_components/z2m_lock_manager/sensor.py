@@ -54,7 +54,7 @@ async def async_setup_entry(
 
     hass.data[DOMAIN]["slot_updated_callback"] = _on_slot_updated
 
-    # Lyssna på action_user-sensorer för varje lås
+    # Lyssna på action_user och lock state för varje lås
     for lock_id in locks:
         lock_part = lock_id.split(".")[-1]
         action_user_entity = f"sensor.{lock_part}_action_user"
@@ -80,9 +80,6 @@ async def async_setup_entry(
             source = source_state.state if source_state else "unknown"
             source_sv = SOURCES_SV.get(source, source)
 
-            # action_user triggar bara vid faktisk användning → alltid unlocked
-            action = "unlocked"
-
             # Slå upp namn från store
             lock = store.get_lock(_lock_id)
             name = "Okänd"
@@ -93,14 +90,13 @@ async def async_setup_entry(
 
             async def _save_and_update(
                 __lock_id=_lock_id,
-                __action=action,
                 __slot_num=slot_num,
                 __name=name,
                 __source_sv=source_sv,
                 __log_sensors=_log_sensors,
             ):
                 await store.async_add_log_entry(
-                    __lock_id, __action, __slot_num, __name, __source_sv
+                    __lock_id, "unlocked", __slot_num, __name, __source_sv
                 )
                 for ls in __log_sensors:
                     if ls.lock_entity_id == __lock_id:
@@ -109,6 +105,32 @@ async def async_setup_entry(
             hass.async_create_task(_save_and_update())
 
         async_track_state_change_event(hass, action_user_entity, _on_action_user_changed)
+
+        # Lyssna på låsning
+        @callback
+        def _on_lock_state_changed(
+            event,
+            _lock_id=lock_id,
+            _log_sensors=log_sensors,
+        ) -> None:
+            new_state = event.data.get("new_state")
+            if new_state is None or new_state.state != "locked":
+                return
+
+            async def _save_and_update(
+                __lock_id=_lock_id,
+                __log_sensors=_log_sensors,
+            ):
+                await store.async_add_log_entry(
+                    __lock_id, "locked", None, "", ""
+                )
+                for ls in __log_sensors:
+                    if ls.lock_entity_id == __lock_id:
+                        ls.async_schedule_update_ha_state()
+
+            hass.async_create_task(_save_and_update())
+
+        async_track_state_change_event(hass, lock_id, _on_lock_state_changed)
 
 
 class SlotNameSensor(SensorEntity):
@@ -203,7 +225,11 @@ class LockLogSensor(SensorEntity):
         if not lock or not lock.log:
             return "Ingen aktivitet"
         entry = lock.log[0]
-        return f"{entry['name']} – {entry['action']} ({entry['source']})"
+        if entry["action"] == "locked":
+            return "Låst"
+        name = entry["name"] or "Okänd"
+        source = entry["source"] or ""
+        return f"Upplåst – {name} ({source})"
 
     @property
     def extra_state_attributes(self) -> dict:
